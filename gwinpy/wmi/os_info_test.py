@@ -18,7 +18,7 @@
 import logging
 import unittest
 import mock
-import os_info
+from gwinpy.wmi import os_info
 
 
 class OsInfoTest(unittest.TestCase):

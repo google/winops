@@ -17,8 +17,8 @@
 
 import logging
 import unittest
-import hw_info
 import mock
+from gwinpy.wmi import hw_info
 
 
 class DeviceIdTest(unittest.TestCase):

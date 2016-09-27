@@ -18,7 +18,7 @@
 import logging
 import unittest
 import mock
-import tpm_info
+from gwinpy.wmi import tpm_info
 
 
 class TpmInfoTest(unittest.TestCase):

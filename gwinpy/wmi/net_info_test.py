@@ -18,7 +18,7 @@
 import logging
 import unittest
 import mock
-import net_info
+from gwinpy.wmi import net_info
 
 
 class NetInfoTest(unittest.TestCase):

@@ -18,7 +18,7 @@
 import sys
 import unittest
 import mock
-import wmi_query
+from gwinpy.wmi import wmi_query
 
 
 class WmiQueryTest(unittest.TestCase):
@@ -80,4 +80,4 @@ class WmiQueryTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  win32test.main()
+  unittest.main()

@@ -32,8 +32,8 @@ class DeviceIdTest(unittest.TestCase):
     self.assertEqual(str(dev_id), '8086-0C5A')
     dev_id = hw_info.DeviceId(ven='8086', dev='0C5A', subsys='02361028')
     self.assertEqual(str(dev_id), '8086-0C5A-02361028')
-    dev_id = hw_info.DeviceId(ven='8086', dev='0C5A', subsys='02361028',
-                              rev='02')
+    dev_id = hw_info.DeviceId(
+        ven='8086', dev='0C5A', subsys='02361028', rev='02')
     self.assertEqual(str(dev_id), '8086-0C5A-02361028-02')
 
 
@@ -61,7 +61,8 @@ class HwInfoTest(unittest.TestCase):
 
   def testComputerSystemModel(self):
     self.hwinfo.wmi.Query.return_value = [
-        mock.Mock(Model='HP Z620 Workstation')]
+        mock.Mock(Model='HP Z620 Workstation')
+    ]
     self.assertEqual(self.hwinfo.ComputerSystemModel(), 'HP Z620 Workstation')
     self.hwinfo.wmi.Query.return_value = None
     self.assertEqual(self.hwinfo.ComputerSystemModel(), None)
@@ -74,8 +75,8 @@ class HwInfoTest(unittest.TestCase):
 
   def testIsLaptop(self):
     laptop_types = [8, 9, 10, 11, 14]
-    with mock.patch.object(self.hwinfo, 'ChassisType',
-                           autospec=True) as mock_cha:
+    with mock.patch.object(
+        self.hwinfo, 'ChassisType', autospec=True) as mock_cha:
       mock_cha.return_value = 3
       self.assertFalse(self.hwinfo.IsLaptop())
       for chassis_type in laptop_types:
@@ -83,8 +84,8 @@ class HwInfoTest(unittest.TestCase):
         self.assertTrue(self.hwinfo.IsLaptop())
 
   def testIsVirtualMachine(self):
-    with mock.patch.object(self.hwinfo, 'ComputerSystemModel',
-                           autospec=True) as model:
+    with mock.patch.object(
+        self.hwinfo, 'ComputerSystemModel', autospec=True) as model:
       model.return_value = 'Parallels Virtual Platform'
       self.assertTrue(self.hwinfo.IsVirtualMachine())
       model.return_value = 'VMWARE Virtual Platform'
@@ -93,6 +94,19 @@ class HwInfoTest(unittest.TestCase):
       self.assertTrue(self.hwinfo.IsVirtualMachine())
       model.return_value = 'HP Z620 Workstation'
       self.assertFalse(self.hwinfo.IsVirtualMachine())
+
+  def testMacAddresses(self):
+    self.hwinfo.wmi.Query.return_value = iter([
+        mock.Mock(MacAddress='AA:BB:CC:DD:EE:FF'),
+        mock.Mock(MacAddress='11:22:33:44:55:66')
+    ])
+    result = self.hwinfo.MacAddresses()
+    self.assertIn('AA:BB:CC:DD:EE:FF', result)
+    self.assertIn('11:22:33:44:55:66', result)
+    self.assertFalse('PCI' in self.hwinfo.wmi.Query.call_args[0][0])
+    self.hwinfo.wmi.Query.reset_mock()
+    self.hwinfo.MacAddresses(pci_only=True)
+    self.assertTrue('PCI' in self.hwinfo.wmi.Query.call_args[0][0])
 
   def testPciDevices(self):
     dev_str = r'PCI\VEN_8086&DEV_1E10&SUBSYS_21FB17AA&REV_C4\3&E89B380&0&E0'
@@ -137,7 +151,8 @@ class HwInfoTest(unittest.TestCase):
           'Select * from Win32_USBControllerDevice')
       mock_pnp.assert_has_calls([
           mock.call(device_id=r'USB\\VID_1050&PID_0211\\6&1A571698&0&2'),
-          mock.call(device_id=r'BTH\\MS_BTHBRB\\7&11E06946&0&1')])
+          mock.call(device_id=r'BTH\\MS_BTHBRB\\7&11E06946&0&1')
+      ])
       self.assertEqual(results[0], 'Device 1')
       self.assertEqual(results[1], 'Device 2')
 

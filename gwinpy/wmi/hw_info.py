@@ -184,13 +184,10 @@ class HWInfo(object):
     Returns:
       A list of all mac addresses found.
     """
+    query = ('SELECT MacAddress FROM Win32_NetworkAdapter WHERE '
+             'PhysicalAdapter=1 AND AdapterTypeID=0')
     if pci_only:
-      query = ('Select MacAddress from Win32_NetworkAdapter where '
-               'PhysicalAdapter=1 AND AdapterTypeID=0')
-    else:
-      query = ('Select MacAddress from Win32_NetworkAdapter where '
-               'PhysicalAdapter=1 AND PNPDeviceID LIKE "PCI%" AND '
-               'AdapterTypeID=0')
+      query += ' AND PNPDeviceID LIKE "PCI%"'
     results = self.wmi.Query(query)
     addresses = []
     for adapter in results:

@@ -175,6 +175,21 @@ class HWInfo(object):
     self.logger.debug('No virtual hardware detected.')
     return False
 
+  def LenovoSystemModel(self):
+    """Get the Lenovo-specific common model name (instead of the model number).
+
+    Returns:
+      The model string if found; else None.
+    """
+    query = 'SELECT Version FROM Win32_ComputerSystemProduct'
+    results = self.wmi.Query(query)
+    if results:
+      self.logger.debug('Win32_ComputerSystemProduct/Version: %s' %
+                        results[0].Version.rstrip())
+      return results[0].Version.rstrip()
+    self.logger.warning('No results for %s.' % query)
+    return None
+
   def MacAddresses(self, pci_only=False):
     """Get the physical host mac addresses from Win32_NetworkAdapter.
 
@@ -279,3 +294,32 @@ class HWInfo(object):
     else:
       self.logger.warning('No results for %s.' % query)
     return devices
+
+  def VideoControllers(self):
+    """Get all video controllers (graphics cards) present in the system.
+
+    Returns:
+      A list with one dict element per controller detected.  Each dict contains
+      values describing the controller.
+        description: controller description (str)
+        driver_version: version of the driver (str)
+        name: controller name (str)
+        pnpid: the PNP device id (str)
+        ram_size: the RAM present in the adapter (int)
+    """
+    controllers = []
+    query = 'SELECT * FROM Win32_VideoController'
+    results = self.wmi.Query(query)
+    if results:
+      for controller in results:
+        self.logger.debug('Win32_VideoController: %s', controller)
+        controllers.append({
+            'description': controller.Description.rstrip(),
+            'driver_version': controller.DriverVersion.rstrip(),
+            'name': controller.Name.rstrip(),
+            'pnpid': controller.PNPDeviceID.rstrip(),
+            'ram_size': controller.AdapterRAM,
+        })
+    else:
+      self.logger.warning('No results for %s.' % query)
+    return controllers

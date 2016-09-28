@@ -95,6 +95,12 @@ class HwInfoTest(unittest.TestCase):
       model.return_value = 'HP Z620 Workstation'
       self.assertFalse(self.hwinfo.IsVirtualMachine())
 
+  def testLenovoSystemModel(self):
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(Version='ThinkPad T430s')]
+    self.assertEqual(self.hwinfo.LenovoSystemModel(), 'ThinkPad T430s')
+    self.hwinfo.wmi.Query.return_value = None
+    self.assertEqual(self.hwinfo.LenovoSystemModel(), None)
+
   def testMacAddresses(self):
     self.hwinfo.wmi.Query.return_value = iter([
         mock.Mock(MacAddress='AA:BB:CC:DD:EE:FF'),
@@ -155,6 +161,27 @@ class HwInfoTest(unittest.TestCase):
       ])
       self.assertEqual(results[0], 'Device 1')
       self.assertEqual(results[1], 'Device 2')
+
+  def testVideoControllers(self):
+    dev1 = mock.Mock(
+        Description='Intel(R) HD Graphics 4000',
+        DriverVersion='9.17.10.2843',
+        Name='Intel(R) HD Graphics 4000',
+        PNPDeviceID=r'PCI\VEN_8086&DEV_0166&SUBSYS_21FB17AA&REV_09\3&E89B380&0&10',
+        AdapterRAM=2214592512)
+    dev2 = mock.Mock(
+        Description='NVIDIA Quadro K620',
+        DriverVersion='10.18.13.5362',
+        Name='NVIDIA Quadro K620',
+        PNPDeviceID=r'PCI\VEN_10DE&DEV_13BB&SUBSYS_1098103C&REV_A2\4&2A43D483&0&0010',
+        AdapterRAM=2147483648)
+    self.hwinfo.wmi.Query.return_value = [dev1, dev2]
+    results = self.hwinfo.VideoControllers()
+    self.assertEqual(results[0]['description'], 'Intel(R) HD Graphics 4000')
+    self.assertEqual(results[1]['driver_version'], '10.18.13.5362')
+    self.hwinfo.wmi.Query.return_value = None
+    results = self.hwinfo.VideoControllers()
+    self.assertEqual(results, [])
 
 
 if __name__ == '__main__':

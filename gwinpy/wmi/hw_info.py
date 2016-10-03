@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,12 +61,8 @@ class DeviceId(object):
 class HWInfo(object):
   """Query basic hardware data in WMI."""
 
-  def __init__(self, logger=None):
+  def __init__(self):
     self.wmi = wmi_query.WMIQuery()
-    if logger:
-      self.logger = logger
-    else:
-      self.logger = logging
 
   def BiosSerial(self):
     """Get the BIOS serial from Win32_BIOS.
@@ -79,9 +73,9 @@ class HWInfo(object):
     query = 'Select SerialNumber from Win32_BIOS'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_BIOS/SerialNumber: %s' % results[0].SerialNumber)
+      logging.debug('Win32_BIOS/SerialNumber: %s', results[0].SerialNumber)
       return results[0].SerialNumber
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def ChassisType(self):
@@ -95,9 +89,9 @@ class HWInfo(object):
     if results:
       for chassisconfig in results:
         for chassis in chassisconfig.chassistypes:
-          self.logger.debug('Win32_SystemEnclosure/ChassisType: %s' % chassis)
+          logging.debug('Win32_SystemEnclosure/ChassisType: %s', chassis)
           return chassis
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def ComputerSystemManufacturer(self):
@@ -109,10 +103,10 @@ class HWInfo(object):
     query = 'Select Manufacturer from Win32_ComputerSystem'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_ComputerSystem/Manufacturer: %s' %
-                        results[0].Manufacturer.rstrip())
+      logging.debug('Win32_ComputerSystem/Manufacturer: %s',
+                    results[0].Manufacturer.rstrip())
       return results[0].Manufacturer.rstrip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def ComputerSystemModel(self):
@@ -124,10 +118,9 @@ class HWInfo(object):
     query = 'Select Model from Win32_ComputerSystem'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_ComputerSystem/Model: %s' %
-                        results[0].Model.rstrip())
+      logging.debug('Win32_ComputerSystem/Model: %s', results[0].Model.rstrip())
       return results[0].Model.rstrip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def HDDSerial(self):
@@ -140,10 +133,10 @@ class HWInfo(object):
              'WHERE Tag LIKE "%DRIVE0"')
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_PhysicalMedia/SerialNumber: %s' %
-                        results[0].SerialNumber.strip())
+      logging.debug('Win32_PhysicalMedia/SerialNumber: %s',
+                    results[0].SerialNumber.strip())
       return results[0].SerialNumber.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def IsLaptop(self):
@@ -164,15 +157,15 @@ class HWInfo(object):
     """
     model = self.ComputerSystemModel().lower()
     if 'virtual' in model:
-      self.logger.debug('Detected generic virtual machine.')
+      logging.debug('Detected generic virtual machine.')
       return True
     elif 'vmware' in model:
-      self.logger.debug('Detected VMWare virtual machine.')
+      logging.debug('Detected VMWare virtual machine.')
       return True
     elif 'parallels' in model:
-      self.logger.debug('Detected Parallels virtual machine.')
+      logging.debug('Detected Parallels virtual machine.')
       return True
-    self.logger.debug('No virtual hardware detected.')
+    logging.debug('No virtual hardware detected.')
     return False
 
   def LenovoSystemModel(self):
@@ -184,10 +177,10 @@ class HWInfo(object):
     query = 'SELECT Version FROM Win32_ComputerSystemProduct'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_ComputerSystemProduct/Version: %s' %
-                        results[0].Version.rstrip())
+      logging.debug('Win32_ComputerSystemProduct/Version: %s',
+                    results[0].Version.rstrip())
       return results[0].Version.rstrip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def MacAddresses(self, pci_only=False):
@@ -207,7 +200,7 @@ class HWInfo(object):
     addresses = []
     for adapter in results:
       address = adapter.MacAddress
-      self.logger.debug('Win32_NetworkAdapter/MacAddress: %s' % address)
+      logging.debug('Win32_NetworkAdapter/MacAddress: %s', address)
       addresses.append(address)
     return addresses
 
@@ -226,10 +219,14 @@ class HWInfo(object):
       for result in results:
         match = pci_device.match(result.DeviceID)
         if match:
-          devices.append(DeviceId(ven=match.group(1), dev=match.group(2),
-                                  subsys=match.group(3), rev=match.group(4)))
+          devices.append(
+              DeviceId(
+                  ven=match.group(1),
+                  dev=match.group(2),
+                  subsys=match.group(3),
+                  rev=match.group(4)))
     else:
-      self.logger.warning('No results for %s.' % query)
+      logging.warning('No results for %s.', query)
     return devices
 
   def PnpDevices(self, device_id=None):
@@ -251,7 +248,7 @@ class HWInfo(object):
         try:
           devices.append(PnpEntity(caption=result.Caption))
         except AttributeError:
-          self.logger.warning('No Caption for device. [%s]' % str(result))
+          logging.warning('No Caption for device. [%s]', str(result))
     return devices
 
   def SmbiosUuid(self):
@@ -263,10 +260,10 @@ class HWInfo(object):
     query = ('Select UUID from Win32_ComputerSystemProduct')
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_ComputerSystemProduct/UUID: %s' %
-                        results[0].UUID.strip())
+      logging.debug('Win32_ComputerSystemProduct/UUID: %s',
+                    results[0].UUID.strip())
       return results[0].UUID.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def UsbDevices(self):
@@ -283,16 +280,16 @@ class HWInfo(object):
         try:
           device_dependent = usb_device.Dependent
         except AttributeError:
-          self.logger.warning('No dependent for USB device %s.' % usb_device)
+          logging.warning('No dependent for USB device %s.', usb_device)
           continue
-        self.logger.debug('Found dependent USB device %s.' % device_dependent)
+        logging.debug('Found dependent USB device %s.', device_dependent)
         device_id = re.search('.*="(.*)"', device_dependent).groups(0)[0]
         if device_id:
           pnp_dev = self.PnpDevices(device_id=device_id)
           if pnp_dev:
             devices.append(pnp_dev[0])
     else:
-      self.logger.warning('No results for %s.' % query)
+      logging.warning('No results for %s.', query)
     return devices
 
   def VideoControllers(self):
@@ -312,7 +309,7 @@ class HWInfo(object):
     results = self.wmi.Query(query)
     if results:
       for controller in results:
-        self.logger.debug('Win32_VideoController: %s', controller)
+        logging.debug('Win32_VideoController: %s', controller)
         controllers.append({
             'description': controller.Description.rstrip(),
             'driver_version': controller.DriverVersion.rstrip(),
@@ -321,5 +318,5 @@ class HWInfo(object):
             'ram_size': controller.AdapterRAM,
         })
     else:
-      self.logger.warning('No results for %s.' % query)
+      logging.warning('No results for %s.', query)
     return controllers

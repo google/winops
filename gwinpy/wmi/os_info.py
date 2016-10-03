@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,12 +20,8 @@ import wmi_query
 class OSInfo(object):
   """Query basic operating system data in WMI."""
 
-  def __init__(self, logger=None):
+  def __init__(self):
     self.wmi = wmi_query.WMIQuery()
-    if logger:
-      self.logger = logger
-    else:
-      self.logger = logging
 
   def OperatingSystem(self):
     """Get the operating system name from Win32_OperatingSystem.
@@ -38,10 +32,9 @@ class OSInfo(object):
     query = 'Select Name from Win32_OperatingSystem'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_OperatingSystem/Name: %s' %
-                        results[0].Name.strip())
+      logging.debug('Win32_OperatingSystem/Name: %s', results[0].Name.strip())
       return results[0].Name.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def OperatingSystemVersion(self):
@@ -53,10 +46,10 @@ class OSInfo(object):
     query = 'Select Version from Win32_OperatingSystem'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_OperatingSystem/Version: %s' %
-                        results[0].Version.strip())
+      logging.debug('Win32_OperatingSystem/Version: %s',
+                    results[0].Version.strip())
       return results[0].Version.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def IsServer(self):

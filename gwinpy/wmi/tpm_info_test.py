@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +13,16 @@
 # limitations under the License.
 """Tests for gwinpy.wmi.tpm_info."""
 
-import logging
 import unittest
-import mock
 from gwinpy.wmi import tpm_info
+import mock
 
 
 class TpmInfoTest(unittest.TestCase):
 
   @mock.patch('gwinpy.wmi.wmi_query.WMIQuery')
   def setUp(self, _):
-    self.tpm = tpm_info.TpmInfo(logger=mock.Mock(spec=logging))
+    self.tpm = tpm_info.TpmInfo()
 
   def testIsActivated(self):
     self.tpm.wmi.Query.return_value = [mock.Mock(IsActivated_InitialValue=True)]

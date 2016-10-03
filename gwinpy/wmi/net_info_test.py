@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +13,16 @@
 # limitations under the License.
 """Tests for gwinpy.wmi.net_info."""
 
-import logging
 import unittest
-import mock
 from gwinpy.wmi import net_info
+import mock
 
 
 class NetInfoTest(unittest.TestCase):
 
   @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
-    self.logging = mock.Mock(spec=logging)
-    self.netinfo = net_info.NetInfo(poll=False, logger=self.logging)
+    self.netinfo = net_info.NetInfo(poll=False)
     self.mock_ip1 = mock.Mock()
     self.mock_ip1.IPAddress = None
     self.mock_ip1.default_gateway = None
@@ -51,17 +47,16 @@ class NetInfoTest(unittest.TestCase):
     self.assertEqual(
         ['2620:0::100', '172.25.100.1'],
         self.netinfo.DefaultGateways(v4_only=False))
-    self.assertEqual(['172.25.100.1'],
-                     self.netinfo.DefaultGateways(v4_only=True))
+    self.assertEqual(
+        ['172.25.100.1'], self.netinfo.DefaultGateways(v4_only=True))
 
   def testDescriptions(self):
     self.mock_ip1.description = 'Intel(R) 82579LM Gigabit Network Connection'
     self.mock_ip2.description = None
     self.mock_ip3.description = None
     self.netinfo._interfaces = [self.mock_ip1, self.mock_ip2, self.mock_ip3]
-    self.assertEqual(
-        ['Intel(R) 82579LM Gigabit Network Connection'],
-        self.netinfo.Descriptions())
+    self.assertEqual(['Intel(R) 82579LM Gigabit Network Connection'],
+                     self.netinfo.Descriptions())
 
   def testDhcpServers(self):
     self.mock_ip1.dhcp_server = None
@@ -85,9 +80,8 @@ class NetInfoTest(unittest.TestCase):
         self.mock_ip1, self.mock_ip2, self.mock_ip3
     ]
     self.netinfo._GetNetConfigs()
-    self.assertEqual(
-        ['Intel(R) 82579LM Gigabit Network Connection'],
-        self.netinfo.Descriptions())
+    self.assertEqual(['Intel(R) 82579LM Gigabit Network Connection'],
+                     self.netinfo.Descriptions())
 
   def testGetNetConfigsDhcp(self):
     self.mock_ip1.DHCPServer = None
@@ -162,9 +156,8 @@ class NetInfoTest(unittest.TestCase):
     subproc.return_value.communicate.return_value = (
         '8.8.8.in-addr.arpa      name = google-public-dns-a.google.com\n', '')
     result = self.netinfo._GetPtrRecord('8.8.8.8', domain='.google.com')
-    subproc.assert_called_with('nslookup -type=PTR 8.8.8.8',
-                               stdout=-1,
-                               stderr=-1)
+    subproc.assert_called_with(
+        'nslookup -type=PTR 8.8.8.8', stdout=-1, stderr=-1)
     self.assertEqual(result, 'google-public-dns-a.google.com')
     # miss
     subproc.return_value.communicate.return_value = (

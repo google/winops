@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +13,9 @@
 # limitations under the License.
 """Tests for gwinpy.wmi.hw_info."""
 
-import logging
 import unittest
-import mock
 from gwinpy.wmi import hw_info
+import mock
 
 
 class DeviceIdTest(unittest.TestCase):
@@ -41,7 +38,7 @@ class HwInfoTest(unittest.TestCase):
 
   @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
-    self.hwinfo = hw_info.HWInfo(logger=mock.Mock(spec=logging))
+    self.hwinfo = hw_info.HWInfo()
 
   def testBiosSerial(self):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(SerialNumber='12345')]
@@ -167,13 +164,15 @@ class HwInfoTest(unittest.TestCase):
         Description='Intel(R) HD Graphics 4000',
         DriverVersion='9.17.10.2843',
         Name='Intel(R) HD Graphics 4000',
-        PNPDeviceID=r'PCI\VEN_8086&DEV_0166&SUBSYS_21FB17AA&REV_09\3&E89B380&0&10',
+        PNPDeviceID=(
+            r'PCI\VEN_8086&DEV_0166&SUBSYS_21FB17AA&REV_09\3&E89B380&0&10'),
         AdapterRAM=2214592512)
     dev2 = mock.Mock(
         Description='NVIDIA Quadro K620',
         DriverVersion='10.18.13.5362',
         Name='NVIDIA Quadro K620',
-        PNPDeviceID=r'PCI\VEN_10DE&DEV_13BB&SUBSYS_1098103C&REV_A2\4&2A43D483&0&0010',
+        PNPDeviceID=(
+            r'PCI\VEN_10DE&DEV_13BB&SUBSYS_1098103C&REV_A2\4&2A43D483&0&0010'),
         AdapterRAM=2147483648)
     self.hwinfo.wmi.Query.return_value = [dev1, dev2]
     results = self.hwinfo.VideoControllers()

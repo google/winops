@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,12 +20,8 @@ import wmi_query
 class TpmInfo(object):
   """Query TPM data in WMI."""
 
-  def __init__(self, logger=None):
+  def __init__(self):
     self.wmi = wmi_query.WMIQuery(namespace=r'root\cimv2\security\microsofttpm')
-    if logger:
-      self.logger = logger
-    else:
-      self.logger = logging
 
   def IsActivated(self):
     """Whether the TPM is currently activated.
@@ -38,10 +32,10 @@ class TpmInfo(object):
     query = 'Select IsActivated_InitialValue from Win32_Tpm'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_Tpm/IsActivated_InitialValue: %s' %
-                        str(results[0].IsActivated_InitialValue))
+      logging.debug('Win32_Tpm/IsActivated_InitialValue: %s',
+                    str(results[0].IsActivated_InitialValue))
       return results[0].IsActivated_InitialValue
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def IsEnabled(self):
@@ -53,10 +47,10 @@ class TpmInfo(object):
     query = 'Select IsEnabled_InitialValue from Win32_Tpm'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_Tpm/IsEnabled_InitialValue: %s' %
-                        str(results[0].IsEnabled_InitialValue))
+      logging.debug('Win32_Tpm/IsEnabled_InitialValue: %s',
+                    str(results[0].IsEnabled_InitialValue))
       return results[0].IsEnabled_InitialValue
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def IsOwned(self):
@@ -68,10 +62,10 @@ class TpmInfo(object):
     query = 'Select IsOwned_InitialValue from Win32_Tpm'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_Tpm/IsOwned_InitialValue: %s' %
-                        str(results[0].IsOwned_InitialValue))
+      logging.debug('Win32_Tpm/IsOwned_InitialValue: %s',
+                    str(results[0].IsOwned_InitialValue))
       return results[0].IsOwned_InitialValue
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def TpmPresent(self):
@@ -95,10 +89,9 @@ class TpmInfo(object):
     query = 'Select SpecVersion from Win32_Tpm'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_Tpm/SpecVersion: %s' %
-                        results[0].SpecVersion.strip())
+      logging.debug('Win32_Tpm/SpecVersion: %s', results[0].SpecVersion.strip())
       return results[0].SpecVersion.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None
 
   def TpmVersion(self):
@@ -110,8 +103,8 @@ class TpmInfo(object):
     query = 'Select ManufacturerVersion from Win32_Tpm'
     results = self.wmi.Query(query)
     if results:
-      self.logger.debug('Win32_Tpm/ManufacturerVersion: %s' %
-                        results[0].ManufacturerVersion.strip())
+      logging.debug('Win32_Tpm/ManufacturerVersion: %s',
+                    results[0].ManufacturerVersion.strip())
       return results[0].ManufacturerVersion.strip()
-    self.logger.warning('No results for %s.' % query)
+    logging.warning('No results for %s.', query)
     return None

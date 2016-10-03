@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +13,16 @@
 # limitations under the License.
 """Tests for gwinpy.wmi.os_info."""
 
-import logging
 import unittest
-import mock
 from gwinpy.wmi import os_info
+import mock
 
 
 class OsInfoTest(unittest.TestCase):
 
   @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
-    self.osinfo = os_info.OSInfo(logger=mock.Mock(spec=logging))
+    self.osinfo = os_info.OSInfo()
 
   def testOperatingSystem(self):
     self.osinfo.wmi.Query.return_value = [mock.Mock(Name='Microsoft Windows 7')]
@@ -40,8 +37,8 @@ class OsInfoTest(unittest.TestCase):
     self.assertEqual(self.osinfo.OperatingSystemVersion(), None)
 
   def testIsServer(self):
-    with mock.patch.object(self.osinfo, 'OperatingSystem',
-                           autospec=True) as osname:
+    with mock.patch.object(
+        self.osinfo, 'OperatingSystem', autospec=True) as osname:
       osname.return_value = 'Microsoft Windows 7 Enterprise'
       self.assertFalse(self.osinfo.IsServer())
       osname.return_value = 'Microsoft Windows Server 2008 R2 Enterprise'

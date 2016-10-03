@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,8 +35,13 @@ import wmi_query
 class NetInterface(object):
   """Stores all settings for a single interface."""
 
-  def __init__(self, default_gateway=None, description=None, dhcp_server=None,
-               dns_domain=None, ip_address=None, mac_address=None):
+  def __init__(self,
+               default_gateway=None,
+               description=None,
+               dhcp_server=None,
+               dns_domain=None,
+               ip_address=None,
+               mac_address=None):
     self.default_gateway = default_gateway
     self.description = description
     self.dhcp_server = dhcp_server
@@ -50,13 +53,9 @@ class NetInterface(object):
 class NetInfo(object):
   """Query basic network data in WMI."""
 
-  def __init__(self, active_only=True, poll=True, logger=None):
+  def __init__(self, active_only=True, poll=True):
     self._wmi = wmi_query.WMIQuery()
     self._interfaces = []
-    if logger:
-      self.logger = logger
-    else:
-      self.logger = logging
     if poll:
       self.Poll(active_only)
 
@@ -165,7 +164,7 @@ class NetInfo(object):
           found_int.mac_address = interface.MACAddress
         self._interfaces.append(found_int)
     else:
-      self.logger.warning('No results for %s.' % query)
+      logging.warning('No results for %s.', query)
 
   def _GetPtrRecord(self, ip_address, domain='.com'):
     """Gets the DNS PTR record for an IPv4 address.
@@ -177,9 +176,11 @@ class NetInfo(object):
     Returns:
       A string containing the FQDN of the IP address, or None if not found.
     """
-    self.logger.debug('Checking PTR record for %s.' % ip_address)
-    subproc = subprocess.Popen('nslookup -type=PTR %s' % ip_address,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logging.debug('Checking PTR record for %s.', ip_address)
+    subproc = subprocess.Popen(
+        'nslookup -type=PTR %s' % ip_address,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
     output, unused_error = subproc.communicate()
     hostname = '([a-zA-Z0-9.-]+%s)' % domain.replace('.', r'\.')
     result = re.search(r'name = %s' % hostname, output)

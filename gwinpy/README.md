@@ -24,3 +24,12 @@ Most of the code is covered with unit tests. These can be run by executing: `$
 python -m unittest discover -p '*_test.py'
 
 [mock]: http://www.voidspace.org.uk/python/mock/
+
+## Contact
+
+We have a public discussion list at
+[google-winops@googlegroups.com](https://groups.google.com/forum/#!forum/google-winops)
+
+## Disclaimer
+
+This is not an official Google product.

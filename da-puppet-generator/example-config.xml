@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Settings>
+  <GPO_BASE>Base Search String</GPO_BASE>
+  <GPO_DCA_BASE>Base Search String</GPO_DCA_BASE>
+  <DA_GROUP_SUFFIX>Group_String</DA_GROUP_SUFFIX>
+  <OUTFILE_BASE>C:\path\to\folder</OUTFILE_BASE>
+  <DA_SERVICES>
+    <Value>mpssvc</Value>
+    <Value>dnscache</Value>
+    <Value>iphlpsvc</Value>
+  </DA_SERVICES>
+  <EXCLUDED_SETTINGS>
+    <Value>RegValue1</Value>
+    <Value>RegValue2</Value>
+  </EXCLUDED_SETTINGS>
+  <EXCLUDE_FROM_ALL>
+    <Value>RegValue3</Value>
+    <Value>RegValue4</Value>
+  </EXCLUDE_FROM_ALL>
+</Settings>

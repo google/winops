@@ -14,7 +14,7 @@
 """Classes to enumerate TPM data from WMI."""
 
 import logging
-import wmi_query
+from gwinpy.wmi import wmi_query
 
 
 class TpmInfo(object):

@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,9 @@ class RegistryTest(unittest.TestCase):
     self.assertTrue(self.winreg.OpenKey.called)
 
   def testOpenSubKeyFail(self):
-    self.winreg.CreateKeyEx.side_effect = registry.WindowsError
+    registry.WindowsError = Exception
+    err = registry.RegistryError('Test', errno=2)
+    self.winreg.CreateKeyEx.side_effect = err
     self.assertRaises(
         registry.RegistryError,
         self.reg._OpenSubKey,
@@ -48,7 +50,7 @@ class RegistryTest(unittest.TestCase):
   def testGetKeyValue(self):
     self.winreg.QueryValueEx.return_value = ['1.0']
     result = self.reg.GetKeyValue(r'SOFTWARE\Test', 'Release')
-    self.assertEquals('1.0', result)
+    self.assertEqual('1.0', result)
 
   def testSetKeyValue(self):
     self.assertRaises(
@@ -58,6 +60,16 @@ class RegistryTest(unittest.TestCase):
         'Release',
         '1.0',
         key_type='REG_FOO')
+
+  def testRemoveKeyValue(self):
+    # Variable definition
+    registry.RegistryError = Exception
+    self.winreg.DeleteValue.side_effect = registry.WindowsError
+    self.assertRaises(
+        registry.RegistryError,
+        self.reg.RemoveKeyValue,
+        r'SOFTWARE\Test',
+        'Release')
 
 
 if __name__ == '__main__':

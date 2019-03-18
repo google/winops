@@ -13,9 +13,13 @@
 # limitations under the License.
 """Basic Windows registry handling."""
 
-import __builtin__
+# pylint: disable=g-import-not-at-top
+try:
+  import builtins
+except ImportError:
+  import __builtin__ as builtins
 
-if 'WindowsError' in __builtin__.__dict__:
+if 'WindowsError' in builtins.__dict__:
   # pylint: disable=used-before-assignment
   # pylint: disable=g-bad-name
   WindowsError = WindowsError  # pylint: disable=undefined-variable
@@ -26,7 +30,11 @@ else:
 
 
 class RegistryError(Exception):
-  pass
+  """Class defining default/required fields when throwing a RegistryError."""
+
+  def __init__(self, message='', errno=0):
+    self.errno = errno
+    super(RegistryError, self).__init__(message)
 
 
 class Registry(object):
@@ -93,8 +101,9 @@ class Registry(object):
       return self._winreg.OpenKey(self._root_key, key_path, 0, access
                                   | registry_view)
     except WindowsError as e:
-      raise RegistryError('Failure openining requested key. [%s]\n%s' %
-                          (key_path, e))
+      raise RegistryError(
+          'Failure opening requested key. [%s]\n%s' % (key_path, e),
+          errno=e.errno)
 
   def SetKeyValue(self,
                   key_path,
@@ -128,6 +137,32 @@ class Registry(object):
     except WindowsError as e:
       raise RegistryError('Failed to read %s from %s.\n%s' %
                           (key_name, key_path, e))
+
+  def RemoveKeyValue(self,
+                     key_path,
+                     key_name,
+                     use_64bit=True):
+    r"""function to remove a Windows registry value.
+
+    Args:
+      key_path: the key we'll search in (such as Software\Microsoft)
+      key_name: the key that we want to get our value from (such as
+        ProgramFilesDir)
+      use_64bit: use the 64bit registry rather than 32bit
+
+    Raises:
+      RegistryError: failure opening a handle to the requested key_path
+    """
+
+    try:
+      handle = self._OpenSubKey(
+          key_path, create=False, write=True, use_64bit=use_64bit)
+      self._winreg.DeleteValue(handle, key_name)
+      handle.Close()
+    except WindowsError as e:
+      raise RegistryError(
+          'Failed to delete %s from %s.\n%s' % (key_name, key_path, e),
+          errno=e.errno)
 
   def _WinRegInit(self):
     """Initialize the _winreg module and dependent variables.

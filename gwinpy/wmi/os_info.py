@@ -14,7 +14,11 @@
 """A class to enumerate basic operating system data from WMI."""
 
 import logging
-import wmi_query
+from gwinpy.wmi import wmi_query
+
+
+class Error(Exception):
+  pass
 
 
 class OSInfo(object):
@@ -59,6 +63,28 @@ class OSInfo(object):
       True if the machine is running server version of Windows.
     """
     if 'server' in self.OperatingSystem().lower():
+      return True
+    else:
+      return False
+
+  def IsDomainController(self):
+    """Checks whether the machine is a domain controller.
+
+    Returns:
+      True if the machine is a domain controller.
+    Raises:
+      Error: Unable to determine the domain role.
+    """
+    query = 'Select DomainRole from Win32_ComputerSystem'
+    results = self.wmi.Query(query)
+    if results:
+      logging.debug('Win32_ComputerSystem/DomainRole: %s',
+                    results[0].DomainRole)
+    else:
+      logging.warning('No results for %s.', query)
+      raise Error('Unable to determine the domain role.')
+
+    if results[0].DomainRole == 4 or results[0].DomainRole == 5:
       return True
     else:
       return False

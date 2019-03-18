@@ -29,7 +29,7 @@ import logging
 import re
 import socket
 import subprocess
-import wmi_query
+from gwinpy.wmi import wmi_query
 
 
 class NetInterface(object):

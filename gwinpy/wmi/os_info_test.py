@@ -44,6 +44,15 @@ class OsInfoTest(unittest.TestCase):
       osname.return_value = 'Microsoft Windows Server 2008 R2 Enterprise'
       self.assertTrue(self.osinfo.IsServer())
 
+  def testIsDomainController(self):
+    self.osinfo.wmi.Query.return_value = [mock.Mock(DomainRole=1)]
+    self.assertFalse(self.osinfo.IsDomainController())
+    self.osinfo.wmi.Query.return_value = [mock.Mock(DomainRole=4)]
+    self.assertTrue(self.osinfo.IsDomainController())
+    self.osinfo.wmi.Query.return_value = [mock.Mock(DomainRole=5)]
+    self.assertTrue(self.osinfo.IsDomainController())
+    self.osinfo.wmi.Query.return_value = None
+    self.assertRaises(os_info.Error, self.osinfo.IsDomainController)
 
 if __name__ == '__main__':
   unittest.main()

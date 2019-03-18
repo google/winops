@@ -15,7 +15,7 @@
 
 import logging
 import re
-import wmi_query
+from gwinpy.wmi import wmi_query
 
 
 class PnpEntity(object):

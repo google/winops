@@ -21,7 +21,7 @@ import mock
 
 class DhcpTest(unittest.TestCase):
 
-  @mock.patch.object(dhcp.socket, 'socket', autospec=True)
+  @mock.patch.object(dhcp.socket, 'socket')
   @mock.patch.object(dhcp, '_OptScan', autospec=True)
   def testGetDhcpOption(self, optscan, socket):
     optscan.return_value = None

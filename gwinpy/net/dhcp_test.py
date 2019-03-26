@@ -59,7 +59,7 @@ class DhcpTest(unittest.TestCase):
     options += struct.pack('BBBBB', 120, 3, 8, 28, 15)
     options += struct.pack('B', 255)
     result = dhcp._OptScan(options, 120)
-    self.assertEqual(result, '\x08\x1c\x0f')
+    self.assertEqual(result, b'\x08\x1c\x0f')
     result = dhcp._OptScan(options, 121)
     self.assertEqual(result, None)
 
@@ -67,7 +67,7 @@ class DhcpTest(unittest.TestCase):
     result = list(dhcp._ZeroFill(10))
     self.assertEqual(len(result), 10)
     for i in result:
-      self.assertEqual('\x00', i)
+      self.assertEqual(b'\x00', i)
 
 
 if __name__ == '__main__':

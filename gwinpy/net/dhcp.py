@@ -18,6 +18,8 @@ import random
 import socket
 import struct
 
+import six
+
 
 def _BuildPacket(client_addr, client_mac, option):
   """Construct the DHCP Packet.
@@ -33,7 +35,7 @@ def _BuildPacket(client_addr, client_mac, option):
     The compiled DHCP packet string.
   """
   ip_addr = None
-  packed_mac = ''
+  packed_mac = b''
 
   try:
     for i in client_mac.split(':'):
@@ -62,9 +64,9 @@ def _BuildPacket(client_addr, client_mac, option):
                      0,  # flags
                     )
   data += ip_addr
-  data += ''.join(_ZeroFill(12))
+  data += b''.join(_ZeroFill(12))
   data += packed_mac
-  data += ''.join(_ZeroFill(202))
+  data += b''.join(_ZeroFill(202))
   data += struct.pack('BBBB', 99, 130, 83, 99)  # magic cookie
   data += struct.pack('BBBBBB',
                       53,  # message type: dhcp
@@ -126,6 +128,12 @@ def GetDhcpOption(client_addr,
   return result
 
 
+def _Unpack(options, index):
+  if six.PY2:
+    return struct.unpack('B', options[index])[0]
+  return options[index]
+
+
 def _OptScan(options, target):
   """Scan the options fields in a DHCP query response.
 
@@ -147,10 +155,10 @@ def _OptScan(options, target):
   """
   i = 0
   while i < len(options):
-    number = struct.unpack('B', options[i])[0]
+    number = _Unpack(options, i)
     if number == 255:
       break
-    size = struct.unpack('B', options[i + 1])[0]
+    size = _Unpack(options, i + 1)
     i += 2
     if number == target:
       return options[i:i + int(size)]
@@ -162,5 +170,5 @@ def _ZeroFill(n):
   """Generate an arbitrary number of zeros for padding."""
   i = 0
   while i < n:
-    yield '\x00'
+    yield b'\x00'
     i += 1

@@ -13,21 +13,22 @@
 # limitations under the License.
 """Tests for gwinpy.registry."""
 
-import sys
 import unittest
 from gwinpy.registry import registry
 import mock
+import six
 
 
 class RegistryTest(unittest.TestCase):
 
   def setUp(self):
+    super(RegistryTest, self).setUp()
     self.winreg = mock.Mock()
     self.winreg.KEY_READ = 1
     self.winreg.KEY_WRITE = 2
-    sys.modules['_winreg'] = self.winreg
-    super(RegistryTest, self).setUp()
-    self.reg = registry.Registry(root_key='HKLM')
+    with mock.patch.object(six.moves, 'winreg', create=True):
+      self.reg = registry.Registry(root_key='HKLM')
+      self.reg._winreg = self.winreg
 
   def testOpenSubKeyCreate(self):
     self.reg._OpenSubKey(r'SOFTWARE\Test', create=True)

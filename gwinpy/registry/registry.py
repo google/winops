@@ -13,11 +13,7 @@
 # limitations under the License.
 """Basic Windows registry handling."""
 
-# pylint: disable=g-import-not-at-top
-try:
-  import builtins
-except ImportError:
-  import __builtin__ as builtins
+from six.moves import builtins
 
 if 'WindowsError' in builtins.__dict__:
   # pylint: disable=used-before-assignment
@@ -171,10 +167,10 @@ class Registry(object):
       RegistryError: failure to initialize a _winreg module instance
     """
     try:
-      import _winreg  # pylint: disable=g-import-not-at-top
-      self._winreg = _winreg
+      from six.moves import winreg  # pylint: disable=g-import-not-at-top
+      self._winreg = winreg
     except ImportError:
-      raise RegistryError('No _winreg module available on this platform.')
+      raise RegistryError('No winreg module available on this platform.')
     self._root_map = {
         'HKCR': self._winreg.HKEY_CLASSES_ROOT,
         'HKCU': self._winreg.HKEY_CURRENT_USER,

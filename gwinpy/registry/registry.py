@@ -64,7 +64,7 @@ class Registry(object):
       handle.Close()
       return result
     except WindowsError as e:
-      raise RegistryError(r'Failed to read %s from %s.\n%s' %
+      raise RegistryError('Failed to read %s from %s.\n%s' %
                           (key_name, key_path, e))
 
   def _OpenSubKey(self, key_path, create=True, write=False, use_64bit=True):

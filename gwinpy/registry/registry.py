@@ -39,7 +39,7 @@ class Registry(object):
   def __init__(self, root_key='HKLM'):
     self._WinRegInit()
     if root_key not in self._root_map:
-      raise RegistryError('Attempting to open unsupported root key. [%s]' %
+      raise RegistryError('Failed to open unsupported root key: %s' %
                           root_key)
     self._root_key = self._root_map[root_key]
 
@@ -64,8 +64,9 @@ class Registry(object):
       handle.Close()
       return result
     except WindowsError as e:
-      raise RegistryError('Failed to read %s from %s.\n%s' %
-                          (key_name, key_path, e))
+      raise RegistryError(r'Failed to get registry value: %s:\%s (%s)' %
+                          (self._root_key, key_path, key_name),
+                          errno=e.errno)
 
   def _OpenSubKey(self, key_path, create=True, write=False, use_64bit=True):
     """Connect to the local registry key.
@@ -98,7 +99,8 @@ class Registry(object):
                                   | registry_view)
     except WindowsError as e:
       raise RegistryError(
-          'Failure opening requested key. [%s]\n%s' % (key_path, e),
+          r'Failed to open registry key: %s:\%s (%s)' %
+          (self._root_key, key_path, e),
           errno=e.errno)
 
   def SetKeyValue(self,
@@ -131,8 +133,9 @@ class Registry(object):
                               key_value)
       handle.Close()
     except WindowsError as e:
-      raise RegistryError('Failed to read %s from %s.\n%s' %
-                          (key_name, key_path, e))
+      raise RegistryError(r'Failed to read registry value: %s:\%s\%s\%s (%s)' %
+                          (self._root_key, key_path, key_name, key_value, e),
+                          errno=e.errno)
 
   def RemoveKeyValue(self,
                      key_path,
@@ -157,7 +160,8 @@ class Registry(object):
       handle.Close()
     except WindowsError as e:
       raise RegistryError(
-          'Failed to delete %s from %s.\n%s' % (key_name, key_path, e),
+          r'Failed to delete registry key: %s:\%s\%s (%s)' %
+          (self._root_key, key_path, key_name, e),
           errno=e.errno)
 
   def _WinRegInit(self):

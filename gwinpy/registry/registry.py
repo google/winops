@@ -64,8 +64,8 @@ class Registry(object):
       handle.Close()
       return result
     except WindowsError as e:
-      raise RegistryError(r'Failed to get registry value: %s:\%s (%s)' %
-                          (self._root_key, key_path, key_name),
+      raise RegistryError(r'Failed to get registry value: %s:\%s\%s (%s)' %
+                          (self._root_key, key_path, key_name, e),
                           errno=e.errno)
 
   def _OpenSubKey(self, key_path, create=True, write=False, use_64bit=True):

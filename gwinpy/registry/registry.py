@@ -41,7 +41,8 @@ class Registry(object):
     if root_key not in self._root_map:
       raise RegistryError('Failed to open unsupported root key: %s' %
                           root_key)
-    self._root_key = self._root_map[root_key]
+    self._root_key = root_key
+    self._root_key_value = self._root_map[root_key]
 
   def GetKeyValue(self, key_path, key_name, use_64bit=True):
     r"""function to retrieve a Windows registry value.
@@ -93,9 +94,10 @@ class Registry(object):
 
     try:
       if create:
-        return self._winreg.CreateKeyEx(self._root_key, key_path, 0, access
+        return self._winreg.CreateKeyEx(self._root_key_value, key_path, 0,
+                                        access
                                         | registry_view)
-      return self._winreg.OpenKey(self._root_key, key_path, 0, access
+      return self._winreg.OpenKey(self._root_key_value, key_path, 0, access
                                   | registry_view)
     except WindowsError as e:
       raise RegistryError(

@@ -145,7 +145,7 @@ class HWInfo(object):
     Returns:
       true for laptops; else false
     """
-    if self.ChassisType() in [8, 9, 10, 11, 14]:
+    if self.ChassisType() in [8, 9, 10, 11, 14, 31]:
       return True
     return False
 

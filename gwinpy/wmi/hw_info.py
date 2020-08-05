@@ -165,6 +165,9 @@ class HWInfo(object):
     elif 'parallels' in model:
       logging.debug('Detected Parallels virtual machine.')
       return True
+    elif 'Google Compute Engine' in model:
+      logging.debug('Detected Google Compute Engine virtual machine.')
+      return True
     logging.debug('No virtual hardware detected.')
     return False
 

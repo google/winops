@@ -1,7 +1,7 @@
 ## Overview
 
-This repository contains various small tools, scripts, and libraries for
-managing Windows computers in an enterprise environment.
+This repository contains general purpose libraries, small tools and scripts
+useful for managing Windows computers in an enterprise environment.
 
 ## Contact
 

@@ -1,11 +1,26 @@
-language: python
-
-python:
-  - '3.6'
-  - '2.7'
-
-install:
-  - pip install -r requirements.txt
-
-script:
-  - python -m unittest discover -s . -p '*_test.py'
+matrix:
+  include:
+    - language: python
+      python: '2.7'
+      install:
+        - pip install -r requirements.txt
+      script:
+        - python -m unittest discover -s . -p '*_test.py'
+    - language: python
+      python: '3.6'
+      install:
+        - pip install -r requirements.txt
+      script:
+        - python -m unittest discover -s . -p '*_test.py'
+    - language: go
+      os: linux
+      script:
+        - go test -v ./...
+    - language: go
+      os: windows
+      script:
+        - go test -v ./...
+    - language: go
+      os: osx
+      script:
+        - go test -v ./...

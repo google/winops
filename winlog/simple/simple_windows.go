@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"log"
+	log "github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"github.com/google/winops/winlog/wevtapi"
 	"github.com/google/winops/winlog"

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp"
-	"github.com/google/go-cmpopts/cmpopts"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"errors"
 	"github.com/google/winops/winlog/simple"
 )

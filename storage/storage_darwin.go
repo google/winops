@@ -23,7 +23,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/groob/plist/plist"
+	"github.com/groob/plist"
 )
 
 const (

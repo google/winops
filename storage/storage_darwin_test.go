@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp"
-	"github.com/groob/plist/plist"
+	"github.com/groob/plist"
 )
 
 var (

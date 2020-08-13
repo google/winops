@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-cmp"
+	"github.com/google/go-cmp/cmp"
 	"github.com/groob/plist"
 )
 

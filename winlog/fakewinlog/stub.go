@@ -1,6 +1,6 @@
 package fakewinlog
 
-import "errors"
+import "github.com/pkg/errors"
 
 // retValue describes the return values used for the interface
 type events struct {

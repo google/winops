@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"errors"
+	"github.com/pkg/errors"
 	"github.com/google/winops/winlog/simple"
 )
 

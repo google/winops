@@ -17,8 +17,8 @@ be rendered in its entirety for use elsewhere.
 
 ## Requirements
 
-Any recent version of Windows 10 or Windows Server 2012 R2 and up is
-compatible with this library.
+Any version of Windows 10 and Windows Server 2012 R2 and up are compatible with
+this library.
 
 ## How to use this library
 

@@ -36,7 +36,7 @@ func cmpHandler(got *Handler, want *Handler) error {
 	if want.size != got.size {
 		return fmt.Errorf("got size: %d, want %d", got.size, want.size)
 	}
-	if len(want.contents) != len(got.contents) {
+	if len(want.contents) > len(got.contents) {
 		return fmt.Errorf("got len(contents): %d, want %d", len(got.contents), len(want.contents))
 	}
 	if want.mount == got.mount {

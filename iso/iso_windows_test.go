@@ -86,9 +86,9 @@ func TestMount(t *testing.T) {
 		},
 		{
 			desc:         "successful mount",
-			fakeMountCmd: func(string) ([]byte, error) { return []byte("D:\r\n"), nil },
+			fakeMountCmd: func(string) ([]byte, error) { return []byte("C:\r\n"), nil },
 			in:           isoFile.Name(),
-			out:          &Handler{image: isoFile.Name(), mount: `D:\`, contents: []string{"contents"}},
+			out:          &Handler{image: isoFile.Name(), mount: `C:\`, contents: []string{"contents"}},
 			err:          nil,
 		},
 	}

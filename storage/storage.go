@@ -191,7 +191,7 @@ func (part *Partition) Contents() ([]string, error) {
 // partition that matches the criteria. Size and type are valid criteria. A size
 // of zero is treated as "any size". A blank type is treated as "any type". If
 // both input parameters are set to any, the first available partition is
-// returned, or an error if there are no avaialble partitions.
+// returned, or an error if there are no available partitions.
 func (device *Device) SelectPartition(minSize uint64, fs FileSystem) (*Partition, error) {
 	// Refresh the partition table prior to scanning.
 	assignMount := false
@@ -210,7 +210,7 @@ func (device *Device) SelectPartition(minSize uint64, fs FileSystem) (*Partition
 	if len(available) == 0 {
 		return nil, fmt.Errorf("no partitions > %d bytes were available: %w", minSize, errPartition)
 	}
-	// If no filesystem was specified, return the first avaialble partition.
+	// If no filesystem was specified, return the first available partition.
 	if fs == "" {
 		return &available[0], nil
 	}
@@ -219,7 +219,7 @@ func (device *Device) SelectPartition(minSize uint64, fs FileSystem) (*Partition
 			return &part, nil
 		}
 	}
-	// The requested filesystem was not found among the avaialble partitions.
+	// The requested filesystem was not found among the available partitions.
 	return nil, fmt.Errorf("no available partitions of type %q were found: %w", fs, errNoMatch)
 }
 

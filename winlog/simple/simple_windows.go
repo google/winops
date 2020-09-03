@@ -14,6 +14,10 @@ import (
 	"github.com/google/winops/winlog"
 )
 
+// windowsLocaleEn is the locale code for English.
+// https://docs.microsoft.com/en-us/previous-versions/windows/embedded/ms912047(v=winembedded.10)?redirectedfrom=MSDN
+const windowsLocaleEn = 1033
+
 // WindowsEvent implements Event interface to subscribe events from Windows Event Log.
 type WindowsEvent struct {
 	config       *winlog.SubscribeConfig
@@ -100,7 +104,7 @@ func (e *WindowsEvent) WaitForSingleObject(timeout time.Duration) (bool, error) 
 // RenderedEvents returns the rendered events as a slice of UTF8 formatted XML strings. `done` will
 // be true if no more events.
 func (e *WindowsEvent) RenderedEvents(max int) (events []string, done bool, err error) {
-	events, err = winlog.GetRenderedEvents(e.config, e.subscription, max, 1033)
+	events, err = winlog.GetRenderedEvents(e.config, e.subscription, max, windowsLocaleEn)
 	// Windows sometimes reports ERROR_INVALID_OPERATION when there is
 	// nothing to read. Look, others have encountered the same:
 	// https://github.com/elastic/beats/issues/3076#issuecomment-264449775

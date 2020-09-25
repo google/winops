@@ -48,6 +48,13 @@ func main() {
 	}
 	defer winlog.Close(subscription)
 
+	publisherCache := make(map[string]windows.Handle)
+	defer func() {
+		for _, h := range publisherCache {
+			winlog.Close(h)
+		}
+	}()
+
 	for {
 		// Wait for events that match the query. Timeout in milliseconds.
 		status, err := windows.WaitForSingleObject(config.SignalEvent, 10000)
@@ -58,7 +65,7 @@ func main() {
 		// Get a block of events once signaled.
 		if status == syscall.WAIT_OBJECT_0 {
 			// Enumerate and render available events in blocks of up to 100.
-			renderedEvents, err := winlog.GetRenderedEvents(config, subscription, 100, 1033)
+			renderedEvents, err := winlog.GetRenderedEvents(config, publisherCache, subscription, 100, 1033)
 			// If no more events are available reset the subscription signal.
 			if err == syscall.Errno(259) { // ERROR_NO_MORE_ITEMS
 				windows.ResetEvent(config.SignalEvent)

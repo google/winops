@@ -20,8 +20,9 @@ const windowsLocaleEn = 1033
 
 // WindowsEvent implements Event interface to subscribe events from Windows Event Log.
 type WindowsEvent struct {
-	config       *winlog.SubscribeConfig
-	subscription windows.Handle
+	config         *winlog.SubscribeConfig
+	subscription   windows.Handle
+	publisherCache map[string]windows.Handle
 }
 
 // NewWindowsEvent creates a WindowsEvent object.
@@ -88,6 +89,7 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 
 	e.config.Flags = wevtapi.EvtSubscribeStartAfterBookmark
 	e.subscription, err = winlog.Subscribe(e.config)
+	e.publisherCache = make(map[string]windows.Handle)
 	return err
 }
 
@@ -104,7 +106,7 @@ func (e *WindowsEvent) WaitForSingleObject(timeout time.Duration) (bool, error) 
 // RenderedEvents returns the rendered events as a slice of UTF8 formatted XML strings. `done` will
 // be true if no more events.
 func (e *WindowsEvent) RenderedEvents(max int) (events []string, done bool, err error) {
-	events, err = winlog.GetRenderedEvents(e.config, e.subscription, max, windowsLocaleEn)
+	events, err = winlog.GetRenderedEvents(e.config, e.publisherCache, e.subscription, max, windowsLocaleEn)
 	// Windows sometimes reports ERROR_INVALID_OPERATION when there is
 	// nothing to read. Look, others have encountered the same:
 	// https://github.com/elastic/beats/issues/3076#issuecomment-264449775
@@ -129,9 +131,15 @@ func (e *WindowsEvent) ResetEvent() error {
 // Close closes the subscription of Windows Event Log and releases the resource.
 func (e *WindowsEvent) Close() error {
 	if err := winlog.Close(e.subscription); err != nil {
-		return err
+		return fmt.Errorf("closing subscription: %w", err)
+	}
+	for _, v := range e.publisherCache {
+		if err := winlog.Close(v); err != nil {
+			return fmt.Errorf("closing publisher metadata: %w", err)
+		}
 	}
 	e.subscription = 0
+	e.publisherCache = nil
 	e.config = nil
 	return nil
 }

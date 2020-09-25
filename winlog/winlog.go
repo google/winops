@@ -70,7 +70,10 @@ func DefaultSubscribeConfig() (*SubscribeConfig, error) {
 
 // GetRenderedEvents iterates over a subscription or query result set up to a configurable
 // maximum and returns the rendered events as a slice of UTF8 formatted XML strings.
-func GetRenderedEvents(config *SubscribeConfig, resultSet windows.Handle, maxEvents int, locale uint32) ([]string, error) {
+// publisherCache is a cache of Handles for publisher metadata to avoid
+// expensive Windows API calls. Pass in an empty map on the first call. Once
+// you've finished using GetRenderedEvents, pass all the contained values to Close.
+func GetRenderedEvents(config *SubscribeConfig, publisherCache map[string]windows.Handle, resultSet windows.Handle, maxEvents int, locale uint32) ([]string, error) {
 	var events = make([]windows.Handle, maxEvents)
 	var returned uint32
 
@@ -92,14 +95,6 @@ func GetRenderedEvents(config *SubscribeConfig, resultSet windows.Handle, maxEve
 	defer func() {
 		for _, event := range events[:returned] {
 			Close(event)
-		}
-	}()
-
-	// Create a cache to speed up rendering formatted messages. Publisher handles must be closed.
-	var publisherCache = make(map[string]windows.Handle)
-	defer func() {
-		for _, v := range publisherCache {
-			Close(v)
 		}
 	}()
 

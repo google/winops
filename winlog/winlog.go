@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	log "github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"github.com/google/winops/winlog/wevtapi"
 )
@@ -102,15 +103,16 @@ func GetRenderedEvents(config *SubscribeConfig, publisherCache map[string]window
 	var renderedEvents []string
 	for _, event := range events[:returned] {
 		// Render the basic XML representation of the event.
-		renderedEvent, err := RenderFragment(event, wevtapi.EvtRenderEventXml)
+		fragment, err := RenderFragment(event, wevtapi.EvtRenderEventXml)
 		if err != nil {
 			return nil, fmt.Errorf("RenderEventXML failed: %v", err)
 		}
 
 		// Attempt to render the full event using the basic event.
-		renderedEvent, err = RenderFormattedMessageXML(event, renderedEvent, locale, publisherCache)
+		renderedEvent, err := RenderFormattedMessageXML(event, fragment, locale, publisherCache)
 		if err != nil {
-			return nil, fmt.Errorf("RenderFormattedMessageXML failed: %v", err)
+			log.Errorf("Failed to fully render event, returning fragment: %v\n%v", err, fragment)
+			renderedEvent = fragment
 		}
 		renderedEvents = append(renderedEvents, renderedEvent)
 	}

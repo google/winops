@@ -105,7 +105,8 @@ func GetRenderedEvents(config *SubscribeConfig, publisherCache map[string]window
 		// Render the basic XML representation of the event.
 		fragment, err := RenderFragment(event, wevtapi.EvtRenderEventXml)
 		if err != nil {
-			return nil, fmt.Errorf("RenderEventXML failed: %v", err)
+			log.Errorf("Failed to render event with EvtRenderEventXml, skipping: %v", err)
+			continue
 		}
 
 		// Attempt to render the full event using the basic event.

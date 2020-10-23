@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"syscall"
+	"time"
 	"unsafe"
 
 	log "github.com/golang/glog"
@@ -194,6 +195,12 @@ func RenderFormattedMessageXML(event windows.Handle, renderedEvent string, local
 		}
 		pubHandle = val
 	} else {
+		log.V(1).Infof("Calling OpenPublisherMetadata(%q)...", publisherName)
+		start := time.Now()
+		defer func() {
+			log.V(1).Infof("OpenPublisherMetadata(%q) returned after %v", publisherName, time.Since(start))
+		}()
+
 		var err error
 		pubHandle, err = OpenPublisherMetadata(localMachine, publisherName, locale)
 		// If there is no publisher metadata available return the original event.

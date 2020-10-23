@@ -34,6 +34,12 @@ type SubscribeConfig struct {
 
 // Close closes a Windows event log handle.
 func Close(h windows.Handle) error {
+	if h == windows.InvalidHandle {
+		// InvalidHandle is used to cache the "File not found" result
+		// from OpenPublisherMetadata.
+		return nil
+	}
+
 	return wevtapi.EvtClose(h)
 }
 
@@ -182,12 +188,17 @@ func RenderFormattedMessageXML(event windows.Handle, renderedEvent string, local
 	// Lookup publisher metadata.
 	var pubHandle windows.Handle
 	if val, ok := cache[publisherName]; ok {
+		if val == windows.InvalidHandle {
+			// We already got ERROR_FILE_NOT_FOUND for this publisher.
+			return renderedEvent, nil
+		}
 		pubHandle = val
 	} else {
 		var err error
 		pubHandle, err = OpenPublisherMetadata(localMachine, publisherName, locale)
 		// If there is no publisher metadata available return the original event.
 		if err == syscall.ERROR_FILE_NOT_FOUND {
+			cache[publisherName] = windows.InvalidHandle
 			return renderedEvent, nil
 		} else if err != nil {
 			return "", fmt.Errorf("OpenPublisherMetadata failed: %v", err)

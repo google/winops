@@ -110,15 +110,19 @@ class HWInfo(object):
     return None
 
   def ComputerSystemModel(self):
-    """Get the system model from Win32_ComputerSystem.
+    """Get the system Model and SystemFamily from Win32_ComputerSystem.
 
     Returns:
       The Model string if found; else None.
     """
-    query = 'Select Model from Win32_ComputerSystem'
+    query = 'Select Model, SystemFamily from Win32_ComputerSystem'
     results = self.wmi.Query(query)
     if results:
       logging.debug('Win32_ComputerSystem/Model: %s', results[0].Model.rstrip())
+      if results[0].SystemFamily:
+        logging.debug('Win32_ComputerSystem/SystemFamily: %s',
+                      results[0].SystemFamily.rstrip())
+
       return results[0].Model.rstrip()
     logging.warning('No results for %s.', query)
     return None

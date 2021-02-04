@@ -19,6 +19,7 @@
 package powershell
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -129,4 +130,37 @@ func supplementalErr(output []byte, supplemental []string) error {
 	}
 	// No matches found, output contains no errors.
 	return nil
+}
+
+// VersionDetail is structured to hold version information as output by powershell components
+type VersionDetail struct {
+	Major         int
+	Minor         int
+	Build         int
+	Revision      int
+	MajorRevision int
+	MinorRevision int
+}
+
+// VersionTable Contains the full output of $PSVersionTable from powershell
+type VersionTable struct {
+	PSVersion                 VersionDetail
+	PSEdition                 string
+	PSCompatibleVersions      []VersionDetail
+	BuildVersion              VersionDetail
+	CLRVersion                VersionDetail
+	WSManStackVersion         VersionDetail
+	PSRemotingProtocolVersion VersionDetail
+	SerializationVersion      VersionDetail
+}
+
+// Version gathers powershell version information from the host, returns an error if version information cannot be obtained.
+func Version() (VersionTable, error) {
+	var psv VersionTable
+	o, err := Command(`$PSVersionTable | ConvertTo-Json`, []string{}, nil)
+	if err != nil {
+		return psv, err
+	}
+	err = json.Unmarshal(o, &psv)
+	return psv, err
 }

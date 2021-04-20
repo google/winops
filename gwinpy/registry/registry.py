@@ -69,6 +69,37 @@ class Registry(object):
                           (self._root_key, key_path, key_name, e),
                           errno=e.errno)
 
+  def GetRegKeys(self, key_path, use_64bit=True):
+    r"""function to enumerate through a subkey and return key names.
+
+    Args:
+      key_path: the key we'll search (such as SOFTWARE\Microsoft)
+      use_64bit: use the 64bit registry rather than 32bit
+
+    Returns:
+      A list of registry keys.
+
+    Raises:
+      RegistryError: failure opening a handle to the requested key_path
+    """
+    results = []
+    try:
+      handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
+      # https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-element-size-limits
+      for subkeys in range(512):
+        result = self._winreg.EnumKey(handle, subkeys)
+        results.append(result)
+    except OSError as e:
+      # WindowsError: [Errno 259] No more data is available
+      if e.winerror == 259:
+        return results
+      raise RegistryError(
+          r'Failed to open registry key: %s:\%s (%s)' %
+          (self._root_key, key_path, e),
+          errno=e.errno)
+    finally:
+      handle.Close()
+
   def _OpenSubKey(self, key_path, create=True, write=False, use_64bit=True):
     """Connect to the local registry key.
 

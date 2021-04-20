@@ -53,6 +53,20 @@ class RegistryTest(unittest.TestCase):
     result = self.reg.GetKeyValue(r'SOFTWARE\Test', 'Release')
     self.assertEqual('1.0', result)
 
+  def testGetKeyValues(self):
+    windows_error = OSError('No more data is available')
+    windows_error.winerror = 259
+    self.winreg.EnumKey.side_effect = ('Release', windows_error)
+    result = self.reg.GetRegKeys(r'SOFTWARE\Test')
+    self.assertEqual(['Release'], result)
+
+  def testGetKeyValuesFail(self):
+    self.winreg.EnumKey.side_effect = registry.RegistryError
+    self.assertRaises(
+        registry.RegistryError,
+        self.reg.GetRegKeys,
+        r'SOFTWARE\Test')
+
   def testSetKeyValue(self):
     self.assertRaises(
         registry.RegistryError,

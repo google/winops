@@ -41,21 +41,23 @@ func errnoErr(e syscall.Errno) error {
 var (
 	modwevtapi = windows.NewLazySystemDLL("wevtapi.dll")
 
-	procEvtClose                 = modwevtapi.NewProc("EvtClose")
-	procEvtCreateBookmark        = modwevtapi.NewProc("EvtCreateBookmark")
-	procEvtFormatMessage         = modwevtapi.NewProc("EvtFormatMessage")
-	procEvtNext                  = modwevtapi.NewProc("EvtNext")
-	procEvtNextChannelPath       = modwevtapi.NewProc("EvtNextChannelPath")
-	procEvtNextPublisherId       = modwevtapi.NewProc("EvtNextPublisherId")
-	procEvtOpenChannelEnum       = modwevtapi.NewProc("EvtOpenChannelEnum")
-	procEvtOpenLog               = modwevtapi.NewProc("EvtOpenLog")
-	procEvtOpenPublisherEnum     = modwevtapi.NewProc("EvtOpenPublisherEnum")
-	procEvtOpenPublisherMetadata = modwevtapi.NewProc("EvtOpenPublisherMetadata")
-	procEvtQuery                 = modwevtapi.NewProc("EvtQuery")
-	procEvtRender                = modwevtapi.NewProc("EvtRender")
-	procEvtSeek                  = modwevtapi.NewProc("EvtSeek")
-	procEvtSubscribe             = modwevtapi.NewProc("EvtSubscribe")
-	procEvtUpdateBookmark        = modwevtapi.NewProc("EvtUpdateBookmark")
+	procEvtClose                    = modwevtapi.NewProc("EvtClose")
+	procEvtCreateBookmark           = modwevtapi.NewProc("EvtCreateBookmark")
+	procEvtFormatMessage            = modwevtapi.NewProc("EvtFormatMessage")
+	procEvtGetChannelConfigProperty = modwevtapi.NewProc("EvtGetChannelConfigProperty")
+	procEvtNext                     = modwevtapi.NewProc("EvtNext")
+	procEvtNextChannelPath          = modwevtapi.NewProc("EvtNextChannelPath")
+	procEvtNextPublisherId          = modwevtapi.NewProc("EvtNextPublisherId")
+	procEvtOpenChannelConfig        = modwevtapi.NewProc("EvtOpenChannelConfig")
+	procEvtOpenChannelEnum          = modwevtapi.NewProc("EvtOpenChannelEnum")
+	procEvtOpenLog                  = modwevtapi.NewProc("EvtOpenLog")
+	procEvtOpenPublisherEnum        = modwevtapi.NewProc("EvtOpenPublisherEnum")
+	procEvtOpenPublisherMetadata    = modwevtapi.NewProc("EvtOpenPublisherMetadata")
+	procEvtQuery                    = modwevtapi.NewProc("EvtQuery")
+	procEvtRender                   = modwevtapi.NewProc("EvtRender")
+	procEvtSeek                     = modwevtapi.NewProc("EvtSeek")
+	procEvtSubscribe                = modwevtapi.NewProc("EvtSubscribe")
+	procEvtUpdateBookmark           = modwevtapi.NewProc("EvtUpdateBookmark")
 )
 
 func EvtClose(event windows.Handle) (err error) {
@@ -95,6 +97,18 @@ func EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageI
 	return
 }
 
+func EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procEvtGetChannelConfigProperty.Addr(), 6, uintptr(channelConfig), uintptr(uint32(propertyID)), uintptr(flags), uintptr(bufferSize), uintptr(buffer), uintptr(unsafe.Pointer(bufferUsed)))
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
 func EvtNext(resultSet windows.Handle, eventArraySize uint32, eventArray *windows.Handle, timeout uint32, flags uint32, returned *uint32) (err error) {
 	r1, _, e1 := syscall.Syscall6(procEvtNext.Addr(), 6, uintptr(resultSet), uintptr(eventArraySize), uintptr(unsafe.Pointer(eventArray)), uintptr(timeout), uintptr(flags), uintptr(unsafe.Pointer(returned)))
 	if r1 == 0 {
@@ -122,6 +136,19 @@ func EvtNextChannelPath(channelEnum windows.Handle, channelPathBufferSize uint32
 func EvtNextPublisherId(publisherEnum windows.Handle, publisherIDBufferSize uint32, publisherIDBuffer *uint16, publisherIDBufferUsed *uint32) (err error) {
 	r1, _, e1 := syscall.Syscall6(procEvtNextPublisherId.Addr(), 4, uintptr(publisherEnum), uintptr(publisherIDBufferSize), uintptr(unsafe.Pointer(publisherIDBuffer)), uintptr(unsafe.Pointer(publisherIDBufferUsed)), 0, 0)
 	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func EvtOpenChannelConfig(session windows.Handle, path *uint16, flags uint32) (handle windows.Handle, err error) {
+	r1, _, e1 := syscall.Syscall(procEvtOpenChannelConfig.Addr(), 3, uintptr(session), uintptr(unsafe.Pointer(path)), uintptr(flags))
+	handle = windows.Handle(r1)
+	if handle == 0 {
 		if e1 != 0 {
 			err = errnoErr(e1)
 		} else {

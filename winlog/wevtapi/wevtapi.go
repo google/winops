@@ -11,9 +11,35 @@ import (
 	"syscall"
 )
 
+type EvtChannelConfigPropertyID uint32
+
 // Windows Event Log Enumerations
 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa385783(v=vs.85).aspx
 const (
+	// EVT_CHANNEL_CONFIG_PROPERTY_ID
+	EvtChannelConfigEnabled EvtChannelConfigPropertyID = iota
+	EvtChannelConfigIsolation
+	EvtChannelConfigType
+	EvtChannelConfigOwningPublisher
+	EvtChannelConfigClassicEventlog
+	EvtChannelConfigAccess
+	EvtChannelLoggingConfigRetention
+	EvtChannelLoggingConfigAutoBackup
+	EvtChannelLoggingConfigMaxSize
+	EvtChannelLoggingConfigLogFilePath
+	EvtChannelPublishingConfigLevel
+	EvtChannelPublishingConfigKeywords
+	EvtChannelPublishingConfigControlGuid
+	EvtChannelPublishingConfigBufferSize
+	EvtChannelPublishingConfigMinBuffers
+	EvtChannelPublishingConfigMaxBuffers
+	EvtChannelPublishingConfigLatency
+	EvtChannelPublishingConfigClockType
+	EvtChannelPublishingConfigSidType
+	EvtChannelPublisherList
+	EvtChannelPublishingConfigFileMax
+	EvtChannelConfigPropertyIdEND
+
 	// EVT_FORMAT_MESSAGE_FLAGS
 	EvtFormatMessageEvent    = 1
 	EvtFormatMessageLevel    = 2
@@ -127,9 +153,11 @@ const (
 //sys   EvtClose(event windows.Handle) (err error) = wevtapi.EvtClose
 //sys   EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) = wevtapi.EvtCreateBookmark
 //sys   EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageID uint32, valueCount uint32, variant uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) (err error) = wevtapi.EvtFormatMessage
+//sys   EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetChannelConfigProperty
 //sys   EvtNext(resultSet windows.Handle, eventArraySize uint32, eventArray *windows.Handle, timeout uint32, flags uint32, returned *uint32) (err error) = wevtapi.EvtNext
 //sys   EvtNextChannelPath(channelEnum windows.Handle, channelPathBufferSize uint32, channelPathBuffer *uint16, channelPathBufferUsed *uint32) (err error) = wevtapi.EvtNextChannelPath
 //sys   EvtNextPublisherId(publisherEnum windows.Handle, publisherIDBufferSize uint32, publisherIDBuffer *uint16, publisherIDBufferUsed *uint32) (err error) = wevtapi.EvtNextPublisherId
+//sys   EvtOpenChannelConfig(event windows.Handle, channelPath  *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenChannelConfig
 //sys   EvtOpenChannelEnum(session windows.Handle, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenChannelEnum
 //sys   EvtOpenLog(session windows.Handle, path *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenLog
 //sys   EvtOpenPublisherEnum(session windows.Handle, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenPublisherEnum

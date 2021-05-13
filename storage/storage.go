@@ -107,6 +107,20 @@ var (
 	errWipe         = errors.New("disk wipe error")
 )
 
+// GptType describes a GPT partition type.
+type GptType string
+
+var (
+	// SystemPartition is the Windows system partition.
+	SystemPartition GptType = "{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}"
+	// MicrosoftReserved is the Microsoft Reserved partition.
+	MicrosoftReserved GptType = "{e3c9e316-0b5c-4db8-817d-f92df00215ae}"
+	// BasicData is a basic data partition.
+	BasicData GptType = "{ebd0a0a2-b9e5-4433-87c0-68b6b72699c7}"
+	// MicrosoftRecovery is the Windows recovery partition.
+	MicrosoftRecovery GptType = "{de94bba4-06d1-4d40-a16a-bfd50179d6ac}"
+)
+
 // Device describes a physical device that is currently
 // attached to the system.
 type Device struct {

@@ -282,12 +282,21 @@ func (device *Device) Wipe() error {
 	return nil
 }
 
-// Partition partitions a GPT-style device with a single FAT32 partition.
+// Partition partitions a GPT-style device with a single basic data partition.
+func (device *Device) Partition(label string) error {
+	size := device.size
+	if device.size >= maxPartSize {
+		size = maxPartSize
+	}
+	return device.PartitionWithOptions(label, BasicData, size)
+}
+
+// PartitionWithOptions partitions a GPT-style device with a single partition.
 // It is assumed that the partition table is already empty. If it is not,
 // a corresponding PowerShell error will be observed. The maximum amount
 // of available space is used for the partition span. On Windows, this is
 // limited to 32 GB for FAT32.
-func (device *Device) Partition(label string) error {
+func (device *Device) PartitionWithOptions(label string, gType GptType, size uint64) error {
 	if device.id == "" {
 		return errInput
 	}
@@ -295,13 +304,13 @@ func (device *Device) Partition(label string) error {
 		return fmt.Errorf("partition table not empty: %w", errDisk)
 	}
 	// Adjust arguments for larger removable drives.
-	size := "-UseMaximumSize"
-	if device.size >= maxPartSize {
-		size = fmt.Sprintf("-Size %d", maxPartSize)
+	sizeArg := "-UseMaximumSize"
+	if size > 0 {
+		sizeArg = fmt.Sprintf("-Size %d", size)
 	}
 
 	// e.g.: New-Partition -DiskNumber 1 -GptType {ebd0a0a2-b9e5-4433-87c0-68b6b72699c7} -Offset 4294656 -Size 8GB
-	psBlock := fmt.Sprintf(`New-Partition -DiskNumber %s -GptType '%s' -Offset %d %s`, device.id, basic, partOffset, size)
+	psBlock := fmt.Sprintf(`New-Partition -DiskNumber %s -GptType '%s' -Offset %d %s`, device.id, gType, partOffset, sizeArg)
 	out, err := powershellCmd(psBlock)
 	if err != nil {
 		return fmt.Errorf("%v: %w", err, errPowershell)
@@ -455,13 +464,17 @@ func freeDrive(requested string) (string, error) {
 }
 
 // Format formats the corresponding partition as FAT32.
-// TODO Parameters to allow formatting other filesystems.
 func (part *Partition) Format(label string) error {
+	return part.FormatWithOptions(label, FAT32, true)
+}
+
+// FormatWithOptions formats the corresponding partition with additional options.
+func (part *Partition) FormatWithOptions(label string, filesystem FileSystem, mount bool) error {
 	if part.path == "" {
 		return errInput
 	}
 	// e.g.: Format-Volume -Path '\\?\Volume{a11dd3fc-b4d2-11e9-b27d-3cf01167ff7e}\' -FileSystem FAT32
-	psBlock := fmt.Sprintf(`Format-Volume -Path '%s' -FileSystem FAT32 -NewFileSystemLabel '%s'`, part.path, label)
+	psBlock := fmt.Sprintf(`Format-Volume -Path '%s' -FileSystem %s -NewFileSystemLabel '%s'`, part.path, filesystem, label)
 	out, err := powershellCmd(psBlock)
 	if err != nil {
 		return fmt.Errorf("powershell returned %v: %w", err, errPowershell)
@@ -469,9 +482,11 @@ func (part *Partition) Format(label string) error {
 	if regExPSFormatVolErr.Match(out) {
 		return fmt.Errorf("powershell returned %v: %w", out, errFormat)
 	}
-	// Mount the partition that was just formatted.
-	if err := part.Mount(""); err != nil {
-		return fmt.Errorf("Mount() returned %v: %w", err, errMount)
+	if mount {
+		// Mount the partition that was just formatted.
+		if err := part.Mount(""); err != nil {
+			return fmt.Errorf("Mount() returned %v: %w", err, errMount)
+		}
 	}
 	return nil
 }

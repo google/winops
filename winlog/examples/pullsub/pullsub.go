@@ -26,7 +26,7 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 	"golang.org/x/sys/windows"
-	"github.com/google/winops/winlog/wevtapi"
+	"github.com/lxn/winlog/wevtapi"
 	"github.com/google/winops/winlog"
 )
 

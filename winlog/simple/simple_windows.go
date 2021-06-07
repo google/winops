@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"github.com/google/winops/winlog/wevtapi"
 	"github.com/google/winops/winlog"
@@ -64,7 +64,7 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 	} else {
 		e.config.Bookmark, err = wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
 		if err != nil {
-			log.Warningf("Create a new bookmark because the existing bookmark might be corrupted: %s", bookmark)
+			glog.Warningf("Create a new bookmark because the existing bookmark might be corrupted: %s", bookmark)
 			e.config.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
 			if err != nil {
 				return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
@@ -87,14 +87,14 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 			if channelSet[strings.ToLower(k)] {
 				q[k] = v
 			} else {
-				log.Warningf("Ignoring non-existent Windows Event Log channel %q", k)
+				glog.Warningf("Ignoring non-existent Windows Event Log channel %q", k)
 			}
 		}
 		xmlQuery, err := winlog.BuildStructuredXMLQuery(q)
 		if err != nil {
 			return fmt.Errorf("Build structured XML query error: %w", err)
 		}
-		log.V(1).Infof("Built the structured XML Query: %s", xmlQuery)
+		glog.V(1).Infof("Built the structured XML Query: %s", xmlQuery)
 		e.config.Query, err = syscall.UTF16PtrFromString(string(xmlQuery))
 		if err != nil {
 			return fmt.Errorf("syscall.UTF16PtrFromString failed: %w", err)

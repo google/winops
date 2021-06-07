@@ -24,7 +24,7 @@ import (
 	"time"
 	"unsafe"
 
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"github.com/google/winops/winlog/wevtapi"
 )
@@ -126,14 +126,14 @@ func GetRenderedEvents(config *SubscribeConfig, publisherCache map[string]window
 		// Render the basic XML representation of the event.
 		fragment, err := RenderFragment(event, wevtapi.EvtRenderEventXml)
 		if err != nil {
-			log.Errorf("Failed to render event with EvtRenderEventXml, skipping: %v", err)
+			glog.Errorf("Failed to render event with EvtRenderEventXml, skipping: %v", err)
 			continue
 		}
 
 		// Attempt to render the full event using the basic event.
 		renderedEvent, err := RenderFormattedMessageXML(event, fragment, locale, publisherCache)
 		if err != nil {
-			log.Errorf("Failed to fully render event, returning fragment: %v\n%v", err, fragment)
+			glog.Errorf("Failed to fully render event, returning fragment: %v\n%v", err, fragment)
 			renderedEvent = fragment
 		}
 		renderedEvents = append(renderedEvents, renderedEvent)
@@ -209,10 +209,10 @@ func RenderFormattedMessageXML(event windows.Handle, renderedEvent string, local
 		}
 		pubHandle = val
 	} else {
-		log.V(1).Infof("Calling OpenPublisherMetadata(%q)...", publisherName)
+		glog.V(1).Infof("Calling OpenPublisherMetadata(%q)...", publisherName)
 		start := time.Now()
 		defer func() {
-			log.V(1).Infof("OpenPublisherMetadata(%q) returned after %v", publisherName, time.Since(start))
+			glog.V(1).Infof("OpenPublisherMetadata(%q) returned after %v", publisherName, time.Since(start))
 		}()
 
 		var err error

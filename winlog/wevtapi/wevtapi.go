@@ -166,16 +166,18 @@ const (
 
 //sys   EvtClose(event windows.Handle) (err error) = wevtapi.EvtClose
 //sys   EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) = wevtapi.EvtCreateBookmark
+//sys	  EvtCreateRenderContext(valuePathsCount uint32, valuePaths *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtCreateRenderContext
 //sys   EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageID uint32, valueCount uint32, variant uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) (err error) = wevtapi.EvtFormatMessage
 //sys   EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetChannelConfigProperty
 //sys   EvtNext(resultSet windows.Handle, eventArraySize uint32, eventArray *windows.Handle, timeout uint32, flags uint32, returned *uint32) (err error) = wevtapi.EvtNext
 //sys   EvtNextChannelPath(channelEnum windows.Handle, channelPathBufferSize uint32, channelPathBuffer *uint16, channelPathBufferUsed *uint32) (err error) = wevtapi.EvtNextChannelPath
 //sys   EvtNextPublisherId(publisherEnum windows.Handle, publisherIDBufferSize uint32, publisherIDBuffer *uint16, publisherIDBufferUsed *uint32) (err error) = wevtapi.EvtNextPublisherId
-//sys   EvtOpenChannelConfig(event windows.Handle, channelPath  *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenChannelConfig
+//sys   EvtOpenChannelConfig(event windows.Handle, channelPath *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenChannelConfig
 //sys   EvtOpenChannelEnum(session windows.Handle, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenChannelEnum
 //sys   EvtOpenLog(session windows.Handle, path *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenLog
 //sys   EvtOpenPublisherEnum(session windows.Handle, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenPublisherEnum
 //sys   EvtOpenPublisherMetadata(session windows.Handle, publisherIdentity *uint16, logFilePath *uint16, locale uint32, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenPublisherMetadata
+//sys   EvtOpenSession(loginClass uint32, login uintptr, timeout uint32, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtOpenSession
 //sys   EvtQuery(session windows.Handle, path *uint16, query *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtQuery
 //sys   EvtRender(ctx windows.Handle, fragment windows.Handle, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32, propertyCount *uint32) (err error) = wevtapi.EvtRender
 //sys   EvtSeek(resultSet windows.Handle, position int64, bookmark windows.Handle, timeout uint32, flags uint32) (err error) = wevtapi.EvtSeek

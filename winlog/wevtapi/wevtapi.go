@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build windows
+//go:build generate || windows
+// +build generate windows
 
 // Windows Event Log API
 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa385785(v=vs.85).aspx
@@ -160,13 +161,13 @@ const (
 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa385784(v=vs.85).aspx
 
 // These comments are used with the go generate command combined with the mksyscall
-// library to generate Windows syscalls. The generated file is not to be modified
-// and may raise some lint warnings.
+// library to generate Windows syscalls. The generated file is not to be modified and may raise some lint warnings.
 // See: https://golang.org/src/syscall/mksyscall_windows.go
 
+//go:generate go run golang.org/x/sys/windows/mkwinsyscall
 //sys   EvtClose(event windows.Handle) (err error) = wevtapi.EvtClose
 //sys   EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) = wevtapi.EvtCreateBookmark
-//sys	  EvtCreateRenderContext(valuePathsCount uint32, valuePaths *uint16, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtCreateRenderContext
+//sys	  EvtCreateRenderContext(valuePathsCount uint32, valuePaths uint32, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtCreateRenderContext
 //sys   EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageID uint32, valueCount uint32, variant uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) (err error) = wevtapi.EvtFormatMessage
 //sys   EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetChannelConfigProperty
 //sys   EvtNext(resultSet windows.Handle, eventArraySize uint32, eventArray *windows.Handle, timeout uint32, flags uint32, returned *uint32) (err error) = wevtapi.EvtNext

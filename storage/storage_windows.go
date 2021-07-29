@@ -375,7 +375,7 @@ func (part *Partition) Mount(letter string) error {
 	if part.fileSystem == UnknownFS {
 		return nil
 	}
-	// TODO We need to check for Admin here and skip if we are not.
+	// TODO(b/130833261) We need to check for Admin here and skip if we are not.
 
 	// Assign partitions to everything else.
 	available, err := freeDrive(letter)

@@ -132,7 +132,7 @@ type Device struct {
 	model     string
 
 	// Partitioning Information
-	// TODO  This remains a string for now to retain compatibility
+	// TODO (b/151981913) This remains a string for now to retain compatibility
 	// with main. It will eventually be moved to type 'partition'.
 	partStyle  string // Typically "GPT", "MBR", or blank (for an uninitialized disk).
 	partitions []Partition

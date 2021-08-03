@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/google/logger"
+	glstor "github.com/google/glazier/go/storage"
 )
 
 const (
@@ -57,7 +58,6 @@ var (
 	regExPSClearDiskErr        = regexp.MustCompile(`Clear-Disk[\s\S]+`)
 	regExPSFormatVolErr        = regexp.MustCompile(`Format-Volume[\s\S]+`)
 	regExPSGetVolErr           = regexp.MustCompile(`Get-Volume[\s\S]+`)
-	regExPSGetDiskErr          = regexp.MustCompile(`Get-Disk[\s\S]+`)
 	regExPSGetPartErr          = regexp.MustCompile(`Get-Partition[\s\S]+`)
 	regExPSGetPartNoPartErr    = regexp.MustCompile(`Get-Partition : No MSFT_Partition objects found[\s\S]+`)
 	regExPSNewPartErr          = regexp.MustCompile(`New-Partition[\s\S]+`)
@@ -77,44 +77,37 @@ var (
 // mandatory. For example, if no deviceID is passed, all deviceID's are
 // considered for the search.
 func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*Device, error) {
-	// The output of Get-Disk is wrapped in an array to ensure that a single disk
-	// renders the same as multiple disks.
-	dBlock := fmt.Sprintf(`ConvertTo-Json @(Get-Disk %s | Select-Object DiskNumber, PartitionStyle, BusType, Path, Size)`, deviceID)
-	if deviceID == "" {
-		dBlock = fmt.Sprint(`ConvertTo-Json @(Get-Disk | Select-Object DiskNumber, PartitionStyle, BusType, Path, Size, Manufacturer, Model)`)
-	}
-	dOut, err := powershellCmd(dBlock)
+	svc, err := glstor.Connect()
 	if err != nil {
-		return nil, fmt.Errorf("powershell returned %v: %w", err, errPowershell)
+		return nil, fmt.Errorf("storage.Service: %w", err)
 	}
-	if regExPSGetDiskErr.Match(dOut) {
-		return nil, fmt.Errorf("powershell commandlet returned %v: %w", dOut, errDisk)
+	defer svc.Close()
+
+	query := ""
+	if deviceID != "" {
+		query = fmt.Sprintf("WHERE Number=%s", deviceID)
 	}
-	if len(dOut) == 0 {
-		return nil, fmt.Errorf("unable to get disk information: %w", errNoOutput)
+	disks, err := svc.GetDisks(query)
+	if err != nil {
+		return nil, fmt.Errorf("svc.GetDisks(%s): %w", query, err)
 	}
-	disks := &[]struct {
-		Manufacturer   string `json:"Manufacturer"`
-		Model          string `json:"Model"`
-		DiskNumber     int    `json:"DiskNumber"`
-		PartitionStyle string `json:"PartitionStyle"`
-		BusType        string `json:"BusType"`
-		Size           uint64 `json:"Size"`
-	}{}
-	if err := json.Unmarshal(dOut, disks); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal returned %v: %w", err, errUnmarshal)
+	defer disks.Close()
+
+	if len(disks.Disks) < 1 {
+		return nil, fmt.Errorf("no disks found")
 	}
 
 	found := []*Device{}
-	for _, d := range *disks {
+	for _, d := range disks.Disks {
 		// Build Device
 		device := &Device{
-			id:        strconv.Itoa(d.DiskNumber),
-			removable: d.BusType == "USB",
+			id: string(d.Number),
+			// TODO(@itsmattl): make helper constants for bus types
+			removable: d.BusType == 7,
 			size:      d.Size,
 			make:      strings.TrimSpace(d.Manufacturer),
 			model:     strings.TrimSpace(d.Model),
-			partStyle: d.PartitionStyle,
+			partStyle: string(d.PartitionStyle),
 		}
 		if removableOnly && !device.removable {
 			continue

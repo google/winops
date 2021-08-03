@@ -57,9 +57,11 @@ func errnoErr(e syscall.Errno) error {
 var (
 	modwevtapi = windows.NewLazySystemDLL("wevtapi.dll")
 
+	procEvtClearLog                 = modwevtapi.NewProc("EvtClearLog")
 	procEvtClose                    = modwevtapi.NewProc("EvtClose")
 	procEvtCreateBookmark           = modwevtapi.NewProc("EvtCreateBookmark")
 	procEvtCreateRenderContext      = modwevtapi.NewProc("EvtCreateRenderContext")
+	procEvtExportLog                = modwevtapi.NewProc("EvtExportLog")
 	procEvtFormatMessage            = modwevtapi.NewProc("EvtFormatMessage")
 	procEvtGetChannelConfigProperty = modwevtapi.NewProc("EvtGetChannelConfigProperty")
 	procEvtNext                     = modwevtapi.NewProc("EvtNext")
@@ -78,6 +80,14 @@ var (
 	procEvtUpdateBookmark           = modwevtapi.NewProc("EvtUpdateBookmark")
 )
 
+func EvtClearLog(session windows.Handle, channelPath *uint16, targetFilePath *uint16, flags uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procEvtClearLog.Addr(), 4, uintptr(session), uintptr(unsafe.Pointer(channelPath)), uintptr(unsafe.Pointer(targetFilePath)), uintptr(flags), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
 func EvtClose(event windows.Handle) (err error) {
 	r1, _, e1 := syscall.Syscall(procEvtClose.Addr(), 1, uintptr(event), 0, 0)
 	if r1 == 0 {
@@ -95,10 +105,18 @@ func EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) {
 	return
 }
 
-func EvtCreateRenderContext(valuePathsCount uint32, valuePaths uintptr, flags uint32) (handle windows.Handle, err error) {
+func EvtCreateRenderContext(valuePathsCount uint32, valuePaths uint32, flags uint32) (handle windows.Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procEvtCreateRenderContext.Addr(), 3, uintptr(valuePathsCount), uintptr(valuePaths), uintptr(flags))
 	handle = windows.Handle(r0)
 	if handle == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func EvtExportLog(session windows.Handle, path *uint16, query *uint16, targetFilePath *uint16, flags uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procEvtExportLog.Addr(), 5, uintptr(session), uintptr(unsafe.Pointer(path)), uintptr(unsafe.Pointer(query)), uintptr(unsafe.Pointer(targetFilePath)), uintptr(flags), 0)
+	if r1 == 0 {
 		err = errnoErr(e1)
 	}
 	return

@@ -105,7 +105,7 @@ func EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) {
 	return
 }
 
-func EvtCreateRenderContext(valuePathsCount uint32, valuePaths uint32, flags uint32) (handle windows.Handle, err error) {
+func EvtCreateRenderContext(valuePathsCount uint32, valuePaths uintptr, flags uint32) (handle windows.Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procEvtCreateRenderContext.Addr(), 3, uintptr(valuePathsCount), uintptr(valuePaths), uintptr(flags))
 	handle = windows.Handle(r0)
 	if handle == 0 {

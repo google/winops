@@ -168,7 +168,7 @@ const (
 //sys   EvtClearLog(session windows.Handle, channelPath *uint16, targetFilePath *uint16, flags uint32) (err error) = wevtapi.EvtClearLog
 //sys   EvtClose(event windows.Handle) (err error) = wevtapi.EvtClose
 //sys   EvtCreateBookmark(bookmarkXML *uint16) (handle windows.Handle, err error) = wevtapi.EvtCreateBookmark
-//sys	  EvtCreateRenderContext(valuePathsCount uint32, valuePaths uint32, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtCreateRenderContext
+//sys	  EvtCreateRenderContext(valuePathsCount uint32, valuePaths uintptr, flags uint32) (handle windows.Handle, err error) = wevtapi.EvtCreateRenderContext
 //sys   EvtExportLog(session windows.Handle, path *uint16, query *uint16, targetFilePath *uint16, flags uint32) (err error) = wevtapi.EvtExportLog
 //sys   EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageID uint32, valueCount uint32, variant uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) (err error) = wevtapi.EvtFormatMessage
 //sys   EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetChannelConfigProperty

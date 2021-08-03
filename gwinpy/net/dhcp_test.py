@@ -15,8 +15,8 @@
 
 import struct
 import unittest
-from gwinpy.net import dhcp
 import mock
+from gwinpy.net import dhcp
 
 
 class DhcpTest(unittest.TestCase):

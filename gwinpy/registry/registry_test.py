@@ -14,9 +14,9 @@
 """Tests for gwinpy.registry."""
 
 import unittest
-from gwinpy.registry import registry
 import mock
 import six
+from gwinpy.registry import registry
 
 
 class RegistryTest(unittest.TestCase):

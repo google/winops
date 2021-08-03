@@ -14,8 +14,8 @@
 """Tests for gwinpy.wmi.os_info."""
 
 import unittest
-from gwinpy.wmi import os_info
 import mock
+from gwinpy.wmi import os_info
 
 
 class OsInfoTest(unittest.TestCase):

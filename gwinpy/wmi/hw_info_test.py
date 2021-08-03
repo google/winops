@@ -14,8 +14,8 @@
 """Tests for gwinpy.wmi.hw_info."""
 
 import unittest
-from gwinpy.wmi import hw_info
 import mock
+from gwinpy.wmi import hw_info
 
 
 class DeviceIdTest(unittest.TestCase):

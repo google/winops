@@ -14,8 +14,8 @@
 """Tests for gwinpy.wmi.net_info."""
 
 import unittest
-from gwinpy.wmi import net_info
 import mock
+from gwinpy.wmi import net_info
 
 
 class NetInfoTest(unittest.TestCase):

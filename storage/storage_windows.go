@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
 // +build windows
 
 package storage
@@ -101,7 +102,7 @@ func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*De
 	for _, d := range disks.Disks {
 		// Build Device
 		device := &Device{
-			id: string(d.Number),
+			id: fmt.Sprint(d.Number),
 			// TODO(@itsmattl): make helper constants for bus types
 			removable: d.BusType == 7,
 			size:      d.Size,

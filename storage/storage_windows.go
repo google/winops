@@ -45,19 +45,19 @@ const (
 
 var (
 	// Wrapped errors for testing.
-	errDetectPart  = errors.New(`partition detection error`)
-	errNoOutput    = errors.New(`output was empty`)
-	errDetectVol   = errors.New(`volume detection error`)
-	errDriveLetter = errors.New(`drive letter error`)
-	errOSResource  = errors.New(`resource unavailable`)
-	errMount       = errors.New(`partition mount error`)
-	errClearDisk   = errors.New(`disk clearing error`)
-	errSetDisk     = errors.New(`property setting error`)
-	errPowershell  = errors.New("powershell error")
+	errDetectPart            = errors.New(`partition detection error`)
+	errNoOutput              = errors.New(`output was empty`)
+	errDetectVol             = errors.New(`volume detection error`)
+	errDriveLetter           = errors.New(`drive letter error`)
+	errOSResource            = errors.New(`resource unavailable`)
+	errMount                 = errors.New(`partition mount error`)
+	errClearDisk             = errors.New(`disk clearing error`)
+	errSetDisk               = errors.New(`property setting error`)
+	errPowershell            = errors.New("powershell error")
+	errUnsupportedFileSystem = errors.New("unsupported filesystem")
 
 	// Regex for powershell error handling.
 	regExPSClearDiskErr        = regexp.MustCompile(`Clear-Disk[\s\S]+`)
-	regExPSFormatVolErr        = regexp.MustCompile(`Format-Volume[\s\S]+`)
 	regExPSGetVolErr           = regexp.MustCompile(`Get-Volume[\s\S]+`)
 	regExPSGetPartErr          = regexp.MustCompile(`Get-Partition[\s\S]+`)
 	regExPSGetPartNoPartErr    = regexp.MustCompile(`Get-Partition : No MSFT_Partition objects found[\s\S]+`)
@@ -71,6 +71,10 @@ var (
 	getVolumeCmd    = powershell
 	powershellCmd   = powershell
 	setPartitionCmd = powershell
+	fnConnect       = windowsConnect
+	fnGetDisks      = windowsGetDisks
+	fnGetVolumes    = windowsGetVolumes
+	fnFormat        = windowsFormat
 )
 
 // Search performs a device search based on the provided parameters and returns
@@ -78,9 +82,9 @@ var (
 // mandatory. For example, if no deviceID is passed, all deviceID's are
 // considered for the search.
 func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*Device, error) {
-	svc, err := glstor.Connect()
+	svc, err := fnConnect()
 	if err != nil {
-		return nil, fmt.Errorf("storage.Service: %w", err)
+		return nil, err
 	}
 	defer svc.Close()
 
@@ -88,15 +92,11 @@ func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*De
 	if deviceID != "" {
 		query = fmt.Sprintf("WHERE Number=%s", deviceID)
 	}
-	disks, err := svc.GetDisks(query)
+	disks, err := fnGetDisks(query, svc)
 	if err != nil {
 		return nil, fmt.Errorf("svc.GetDisks(%s): %w", query, err)
 	}
 	defer disks.Close()
-
-	if len(disks.Disks) < 1 {
-		return nil, fmt.Errorf("no disks found")
-	}
 
 	found := []*Device{}
 	for _, d := range disks.Disks {
@@ -467,15 +467,23 @@ func (part *Partition) FormatWithOptions(label string, filesystem FileSystem, mo
 	if part.path == "" {
 		return errInput
 	}
-	// e.g.: Format-Volume -Path '\\?\Volume{a11dd3fc-b4d2-11e9-b27d-3cf01167ff7e}\' -FileSystem FAT32
-	psBlock := fmt.Sprintf(`Format-Volume -Path '%s' -FileSystem %s -NewFileSystemLabel '%s'`, part.path, filesystem, label)
-	out, err := powershellCmd(psBlock)
+
+	svc, err := fnConnect()
 	if err != nil {
-		return fmt.Errorf("powershell returned %v: %w", err, errPowershell)
+		return err
 	}
-	if regExPSFormatVolErr.Match(out) {
-		return fmt.Errorf("powershell returned %v: %w", out, errFormat)
+	defer svc.Close()
+
+	vol, err := fnGetVolumes(part.path, svc)
+	if err != nil {
+		return err
 	}
+	defer vol.Close()
+
+	if err := fnFormat(filesystem, label, &vol.Volumes[0]); err != nil {
+		return err
+	}
+
 	if mount {
 		// Mount the partition that was just formatted.
 		if err := part.Mount(""); err != nil {
@@ -483,6 +491,63 @@ func (part *Partition) FormatWithOptions(label string, filesystem FileSystem, mo
 		}
 	}
 	return nil
+}
+
+type iService interface {
+	Close()
+	GetDisks(string) (glstor.DiskSet, error)
+	GetVolumes(string) (glstor.VolumeSet, error)
+}
+
+type iVolume interface {
+	FormatFAT32(label string, allocationUnitSize int32, full, force bool) (glstor.Volume, glstor.ExtendedStatus, error)
+	FormatNTFS(label string, allocationUnitSize int32, full, force, compress, shortFileNameSupport, useLargeFRS, disableHeatGathering bool) (glstor.Volume, glstor.ExtendedStatus, error)
+}
+
+func windowsConnect() (iService, error) {
+	svc, err := glstor.Connect()
+	return &svc, err
+}
+
+func windowsFormat(fs FileSystem, label string, vol iVolume) error {
+	var v glstor.Volume
+	var err error
+	switch fs {
+	case FAT32:
+		v, _, err = vol.FormatFAT32(label, 0, false, true)
+	case NTFS:
+		v, _, err = vol.FormatNTFS(label, 0, false, true, true, true, true, false)
+	default:
+		return fmt.Errorf("%w: %v", errUnsupportedFileSystem, fs)
+	}
+	if err != nil {
+		return err
+	}
+	v.Close()
+	return nil
+}
+
+func windowsGetDisks(query string, svc iService) (glstor.DiskSet, error) {
+	ds, err := svc.GetDisks(query)
+	if err != nil {
+		return glstor.DiskSet{}, err
+	}
+	if len(ds.Disks) < 1 {
+		return glstor.DiskSet{}, errDetectDisk
+	}
+	return ds, nil
+}
+
+func windowsGetVolumes(path string, svc iService) (glstor.VolumeSet, error) {
+	path = strings.ReplaceAll(path, `\`, `\\`) // escape the slashes used in volume paths
+	vol, err := svc.GetVolumes(fmt.Sprintf("WHERE Path='%s'", path))
+	if err != nil {
+		return glstor.VolumeSet{}, err
+	}
+	if len(vol.Volumes) < 1 {
+		return glstor.VolumeSet{}, errDetectVol
+	}
+	return vol, nil
 }
 
 // powershell represents the OS command used to run a powershell cmdlet on

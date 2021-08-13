@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
 // +build windows
 
 package storage
@@ -22,6 +23,10 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	glstor "github.com/google/glazier/go/storage"
 )
 
 var (
@@ -314,16 +319,16 @@ func TestFreeDrive(t *testing.T) {
 }
 
 func TestFormat(t *testing.T) {
-
-	partition := &Partition{path: `\\?\Volume{78869425-9bc5-11ea-956e-f85971225104}\`}
-
+	errCon := errors.New("Connect error")
+	errGet := errors.New("GetVolumes error")
+	errFmt := errors.New("Format error")
 	tests := []struct {
-		desc                string
-		fakePowershellCmd   func(string) ([]byte, error)
-		fakeSetPartitionCmd func(string) ([]byte, error)
-		fakeAvailableDrives func() []string
-		partition           *Partition
-		err                 error
+		desc      string
+		partition *Partition
+		errCon    error
+		errGet    error
+		errFmt    error
+		err       error
 	}{
 		{
 			desc:      "no part path",
@@ -331,41 +336,182 @@ func TestFormat(t *testing.T) {
 			err:       errInput,
 		},
 		{
-			desc:              "error from powershell",
-			fakePowershellCmd: func(string) ([]byte, error) { return []byte(""), errors.New("error") },
-			partition:         partition,
-			err:               errPowershell,
+			desc:      "connection error",
+			partition: &Partition{path: "\\.\foo\bar"},
+			err:       errCon,
+			errCon:    errCon,
 		},
 		{
-			desc:              "error from Format-Volume",
-			fakePowershellCmd: func(string) ([]byte, error) { return []byte("Format-Volume error"), nil },
-			partition:         partition,
-			err:               errFormat,
+			desc:      "GetVolumes error",
+			partition: &Partition{path: "\\.\foo\bar"},
+			err:       errGet,
+			errGet:    errGet,
 		},
 		{
-			desc:                "error from Mount",
-			fakePowershellCmd:   func(string) ([]byte, error) { return []byte(""), nil },
-			fakeSetPartitionCmd: func(string) ([]byte, error) { return []byte(""), errors.New("error") },
-			fakeAvailableDrives: func() []string { return nil },
-			partition:           partition,
-			err:                 errMount,
-		},
-		{
-			desc:                "success",
-			fakePowershellCmd:   func(string) ([]byte, error) { return []byte(""), nil },
-			fakeSetPartitionCmd: func(string) ([]byte, error) { return []byte(""), nil },
-			fakeAvailableDrives: func() []string { return []string{"F"} },
-			partition:           partition,
-			err:                 nil,
+			desc:      "Format error",
+			partition: &Partition{path: "\\.\foo\bar"},
+			err:       errFmt,
+			errFmt:    errFmt,
 		},
 	}
 	for _, tt := range tests {
-		powershellCmd = tt.fakePowershellCmd
-		setPartitionCmd = tt.fakeSetPartitionCmd
-		availableDrives = tt.fakeAvailableDrives
+		fnConnect = func() (iService, error) {
+			return &fakeService{}, tt.errCon
+		}
+		fnGetVolumes = func(path string, vp iService) (glstor.VolumeSet, error) {
+			return glstor.VolumeSet{[]glstor.Volume{glstor.Volume{}}}, tt.errGet
+		}
+		fnFormat = func(fs FileSystem, label string, vol iVolume) error {
+			return tt.errFmt
+		}
 		err := tt.partition.Format("")
 		if !errors.Is(err, tt.err) {
 			t.Errorf("%s: Format() err = %v, want: %v", tt.desc, err, tt.err)
+		}
+	}
+}
+
+type fakeService struct {
+	ds    glstor.DiskSet
+	vs    glstor.VolumeSet
+	input string
+	err   error
+}
+
+func (fg *fakeService) Close() {}
+
+func (fg *fakeService) GetDisks(in string) (glstor.DiskSet, error) {
+	fg.input = in
+	return fg.ds, fg.err
+}
+
+func (fg *fakeService) GetVolumes(in string) (glstor.VolumeSet, error) {
+	fg.input = in
+	return fg.vs, fg.err
+}
+
+func TestWindowsGetVolumes(t *testing.T) {
+	vs1 := glstor.VolumeSet{Volumes: []glstor.Volume{glstor.Volume{}}}
+	err1 := errors.New("error1")
+	tests := []struct {
+		desc     string
+		path     string
+		inErr    error
+		vols     glstor.VolumeSet
+		wantVols glstor.VolumeSet
+		wantErr  error
+	}{
+		{
+			desc:     "empty",
+			path:     "",
+			vols:     glstor.VolumeSet{},
+			inErr:    nil,
+			wantVols: glstor.VolumeSet{},
+			wantErr:  errDetectVol,
+		},
+		{
+			desc:     "one volume",
+			path:     "",
+			vols:     vs1,
+			inErr:    nil,
+			wantVols: vs1,
+			wantErr:  nil,
+		},
+		{
+			desc:     "GetVolumes error",
+			path:     "",
+			vols:     glstor.VolumeSet{},
+			inErr:    err1,
+			wantVols: glstor.VolumeSet{},
+			wantErr:  err1,
+		},
+	}
+	for _, tt := range tests {
+		got, err := windowsGetVolumes(tt.path, &fakeService{vs: tt.vols, err: tt.inErr})
+		if !errors.Is(err, tt.wantErr) {
+			t.Errorf("%s: windowsGetVolumes() err = %v, want: %v", tt.desc, err, tt.wantErr)
+		}
+		if !cmp.Equal(got, tt.wantVols, cmpopts.IgnoreUnexported(glstor.Volume{})) {
+			t.Errorf("%s: windowsGetVolumes() got: %v, want: %v", tt.desc, got, tt.wantVols)
+		}
+	}
+}
+
+func TestWindowsGetVolumesEscaping(t *testing.T) {
+	want := `WHERE Path='\\\\?\\Volume{a11dd3fc-b4d2-11e9-b27d-3cf01167ff7e}\\'`
+	fs := &fakeService{}
+	windowsGetVolumes(`\\?\Volume{a11dd3fc-b4d2-11e9-b27d-3cf01167ff7e}\`, fs)
+	if diff := cmp.Diff(fs.input, want); diff != "" {
+		t.Errorf("windowsGetVolumes() produced unexpected diff: %v", diff)
+	}
+}
+
+var (
+	errNTFS  = errors.New("ntfs error")
+	errFAT32 = errors.New("fat32 error")
+)
+
+type FakeVol struct {
+	err error
+}
+
+func (f *FakeVol) FormatFAT32(label string, allocationUnitSize int32, full, force bool) (glstor.Volume, glstor.ExtendedStatus, error) {
+	var err error
+	if f.err != nil {
+		err = errFAT32
+	}
+	return glstor.Volume{}, glstor.ExtendedStatus{}, err
+}
+func (f *FakeVol) FormatNTFS(label string, allocationUnitSize int32, full, force, compress, shortFileNameSupport, useLargeFRS, disableHeatGathering bool) (glstor.Volume, glstor.ExtendedStatus, error) {
+	var err error
+	if f.err != nil {
+		err = errNTFS
+	}
+	return glstor.Volume{}, glstor.ExtendedStatus{}, err
+}
+
+func TestWindowsFormat(t *testing.T) {
+	tests := []struct {
+		desc  string
+		fs    FileSystem
+		inErr error
+		err   error
+	}{
+		{
+			desc:  "fat32 ok",
+			fs:    FAT32,
+			inErr: nil,
+			err:   nil,
+		},
+		{
+			desc:  "fat32 err",
+			fs:    FAT32,
+			inErr: errors.New("formatting error"),
+			err:   errFAT32,
+		},
+		{
+			desc:  "ntfs ok",
+			fs:    NTFS,
+			inErr: nil,
+			err:   nil,
+		},
+		{
+			desc:  "ntfs err",
+			fs:    NTFS,
+			inErr: errors.New("formatting error"),
+			err:   errNTFS,
+		},
+		{
+			desc:  "unsupported fs",
+			fs:    UnknownFS,
+			inErr: nil,
+			err:   errUnsupportedFileSystem,
+		},
+	}
+	for _, tt := range tests {
+		err := windowsFormat(tt.fs, tt.desc, &FakeVol{err: tt.inErr})
+		if !errors.Is(err, tt.err) {
+			t.Errorf("%s: windowsFormat() err = %v, want: %v", tt.desc, err, tt.err)
 		}
 	}
 }

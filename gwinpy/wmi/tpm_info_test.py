@@ -20,7 +20,8 @@ from gwinpy.wmi import tpm_info
 
 class TpmInfoTest(unittest.TestCase):
 
-  @mock.patch('gwinpy.wmi.wmi_query.WMIQuery')
+  @mock.patch(
+      'gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
     self.tpm = tpm_info.TpmInfo()
 

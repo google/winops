@@ -36,7 +36,8 @@ class DeviceIdTest(unittest.TestCase):
 
 class HwInfoTest(unittest.TestCase):
 
-  @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
+  @mock.patch(
+      'gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
     self.hwinfo = hw_info.HWInfo()
 

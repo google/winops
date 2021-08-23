@@ -20,7 +20,8 @@ from gwinpy.wmi import net_info
 
 class NetInfoTest(unittest.TestCase):
 
-  @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
+  @mock.patch(
+      'gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
     self.netinfo = net_info.NetInfo(poll=False)
     self.mock_ip1 = mock.Mock()

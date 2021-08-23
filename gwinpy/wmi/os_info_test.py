@@ -20,7 +20,8 @@ from gwinpy.wmi import os_info
 
 class OsInfoTest(unittest.TestCase):
 
-  @mock.patch('gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
+  @mock.patch(
+      'gwinpy.wmi.wmi_query.WMIQuery', autospec=True)
   def setUp(self, _):
     self.osinfo = os_info.OSInfo()
 

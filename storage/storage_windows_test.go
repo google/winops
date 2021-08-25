@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -198,76 +197,55 @@ func TestSelectPartition(t *testing.T) {
 }
 
 func TestWipe(t *testing.T) {
+	errCon := errors.New("Connect error")
+	errGet := errors.New("GetVolumes error")
+	errWipe := errors.New("Wipe error")
 	tests := []struct {
-		desc              string
-		fakePowershellCmd func(string) ([]byte, error)
-		device            *Device
-		wantPartStyle     string
-		wantPartitions    []Partition
-		err               error
+		desc    string
+		device  *Device
+		errCon  error
+		errGet  error
+		errWipe error
+		want    error
 	}{
 		{
-			desc:   "empty device id",
+			desc:   "no part path",
 			device: &Device{},
-			err:    errInput,
+			want:   errInput,
 		},
 		{
-			desc:              "error wiping",
-			fakePowershellCmd: func(string) ([]byte, error) { return nil, errWipe },
-			device:            &Device{id: "1"},
-			err:               errWipe,
-		},
-		{
-			desc:              "error from Clear-Disk",
-			fakePowershellCmd: func(string) ([]byte, error) { return []byte("Clear-Disk error"), nil },
-			device:            &Device{id: "1"},
-			err:               errDisk,
-		},
-		{
-			desc: "error set GPT",
-			fakePowershellCmd: func(arg string) ([]byte, error) {
-				if strings.Contains(arg, "Set-Disk") {
-					return []byte(""), errors.New("error")
-				}
-				return nil, nil
-			},
+			desc:   "connection error",
 			device: &Device{id: "1"},
-			err:    errPowershell,
+			want:   errCon,
+			errCon: errCon,
 		},
 		{
-			desc: "error from Set-Disk",
-			fakePowershellCmd: func(arg string) ([]byte, error) {
-				if strings.Contains(arg, "Set-Disk") {
-					return []byte("Set-Disk error"), nil
-				}
-				return nil, nil
-			},
+			desc:   "GetDisk error",
 			device: &Device{id: "1"},
-			err:    errSetDisk,
+			want:   errGet,
+			errGet: errGet,
 		},
 		{
-			desc:              "success",
-			fakePowershellCmd: func(string) ([]byte, error) { return nil, nil },
-			device:            &Device{id: "1"},
-			wantPartStyle:     string(gpt),
-			wantPartitions:    []Partition{},
-			err:               nil,
+			desc:   "Wipe error",
+			device: &Device{id: "1"},
+			want:   errWipe,
+			errGet: errWipe,
 		},
 	}
 
 	for _, tt := range tests {
-		powershellCmd = tt.fakePowershellCmd
-		if err := tt.device.Wipe(); !errors.Is(err, tt.err) {
-			t.Errorf("%s: Wipe for device.id %q = %v, want: %v", tt.desc, tt.device.id, err, tt.err)
+		fnConnect = func() (iService, error) {
+			return &fakeService{}, tt.errCon
+		}
+		fnGetDisks = func(query string, vp iService) (glstor.DiskSet, error) {
+			return glstor.DiskSet{[]glstor.Disk{glstor.Disk{}}}, tt.errGet
+		}
+		fnWipe = func(disk iDisk) error {
+			return tt.errWipe
+		}
+		if err := tt.device.Wipe(); !errors.Is(err, tt.want) {
+			t.Errorf("%s: Wipe() = %v, want: %v", tt.desc, err, tt.want)
 			continue
-		}
-		if tt.device.partStyle != tt.wantPartStyle {
-			t.Errorf("%s: Wipe for device.id %q got partSyle: %q, want: %q", tt.desc, tt.device.id, tt.device.partStyle, tt.wantPartStyle)
-		}
-		for i := range tt.wantPartitions {
-			if err := cmpPartitions(tt.device.partitions, tt.wantPartitions, i); err != nil {
-				t.Errorf("%s: Wipe for device.id %q partition mismatch = %v", tt.desc, tt.device.id, err)
-			}
 		}
 	}
 }
@@ -475,43 +453,115 @@ func TestWindowsFormat(t *testing.T) {
 		desc  string
 		fs    FileSystem
 		inErr error
-		err   error
+		want  error
 	}{
 		{
 			desc:  "fat32 ok",
 			fs:    FAT32,
 			inErr: nil,
-			err:   nil,
+			want:  nil,
 		},
 		{
 			desc:  "fat32 err",
 			fs:    FAT32,
 			inErr: errors.New("formatting error"),
-			err:   errFAT32,
+			want:  errFAT32,
 		},
 		{
 			desc:  "ntfs ok",
 			fs:    NTFS,
 			inErr: nil,
-			err:   nil,
+			want:  nil,
 		},
 		{
 			desc:  "ntfs err",
 			fs:    NTFS,
 			inErr: errors.New("formatting error"),
-			err:   errNTFS,
+			want:  errNTFS,
 		},
 		{
 			desc:  "unsupported fs",
 			fs:    UnknownFS,
 			inErr: nil,
-			err:   errUnsupportedFileSystem,
+			want:  errUnsupportedFileSystem,
 		},
 	}
 	for _, tt := range tests {
 		err := windowsFormat(tt.fs, tt.desc, &FakeVol{err: tt.inErr})
-		if !errors.Is(err, tt.err) {
-			t.Errorf("%s: windowsFormat() err = %v, want: %v", tt.desc, err, tt.err)
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: windowsFormat() err = %v, want: %v", tt.desc, err, tt.want)
 		}
 	}
+}
+
+func TestWindowsInitialize(t *testing.T) {
+	errConv := errors.New("ConvertStyle error")
+	tests := []struct {
+		desc    string
+		errConv error
+		want    error
+	}{
+		{
+			desc:    "ConvertStyle error",
+			errConv: errConv,
+			want:    errConv,
+		},
+		{
+			desc: "success",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		err := windowsInitialize(&FakeDisk{errConv: tt.errConv})
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: windowsInitialize() err = %v, want: %v", tt.desc, err, tt.want)
+		}
+	}
+}
+
+func TestWindowsWipe(t *testing.T) {
+	errClear := errors.New("Clear error")
+	tests := []struct {
+		desc     string
+		errClear error
+		want     error
+	}{
+		{
+			desc:     "Clear error",
+			errClear: errClear,
+			want:     errClear,
+		},
+		{
+			desc: "success",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		err := windowsWipe(&FakeDisk{errClear: tt.errClear})
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: windowsWipe() err = %v, want: %v", tt.desc, err, tt.want)
+		}
+	}
+}
+
+type FakeDisk struct {
+	glstor.Disk
+
+	errClear      error
+	errConv       error
+	errInitialize error
+}
+
+func (f *FakeDisk) Close() {}
+
+func (f *FakeDisk) Clear(removeData, removeOEM, zeroDisk bool) (glstor.ExtendedStatus, error) {
+	return glstor.ExtendedStatus{}, f.errClear
+}
+
+func (f *FakeDisk) Initialize(ps glstor.PartitionStyle) (glstor.ExtendedStatus, error) {
+	return glstor.ExtendedStatus{}, f.errInitialize
+}
+
+func (f *FakeDisk) ConvertStyle(style glstor.PartitionStyle) (glstor.ExtendedStatus, error) {
+	return glstor.ExtendedStatus{}, f.errConv
 }

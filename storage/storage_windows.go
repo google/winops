@@ -57,13 +57,11 @@ var (
 	errUnsupportedFileSystem = errors.New("unsupported filesystem")
 
 	// Regex for powershell error handling.
-	regExPSClearDiskErr        = regexp.MustCompile(`Clear-Disk[\s\S]+`)
 	regExPSGetVolErr           = regexp.MustCompile(`Get-Volume[\s\S]+`)
 	regExPSGetPartErr          = regexp.MustCompile(`Get-Partition[\s\S]+`)
 	regExPSGetPartNoPartErr    = regexp.MustCompile(`Get-Partition : No MSFT_Partition objects found[\s\S]+`)
 	regExPSNewPartErr          = regexp.MustCompile(`New-Partition[\s\S]+`)
 	regExPSRemoveAccessPathErr = regexp.MustCompile(`Remove-PartitionAccessPath[\s\S]+`)
-	regExPSSetDiskErr          = regexp.MustCompile(`Set-Disk[\s\S]+`)
 	regExPSSetPartErr          = regexp.MustCompile(`Set-Partition[\s\S]+`)
 
 	// Dependency injection for testing.
@@ -74,7 +72,9 @@ var (
 	fnConnect       = windowsConnect
 	fnGetDisks      = windowsGetDisks
 	fnGetVolumes    = windowsGetVolumes
+	fnInitialize    = windowsInitialize
 	fnFormat        = windowsFormat
+	fnWipe          = windowsWipe
 )
 
 // Search performs a device search based on the provided parameters and returns
@@ -247,30 +247,34 @@ func (device *Device) Wipe() error {
 	if device.id == "" {
 		return errInput
 	}
-	// Clear all existing partitions from the disk.
-	// e.g.: Clear-Disk -Number 1 -RemoveData -RemoveOEM -Confirm:$false
-	cBlock := fmt.Sprintf(`Clear-Disk -Number '%s' -RemoveData -RemoveOEM -Confirm:$false`, device.id)
-	cOut, err := powershellCmd(cBlock)
+
+	svc, err := fnConnect()
 	if err != nil {
-		return fmt.Errorf("powershell returned %v: %w", err, errWipe)
+		return err
 	}
-	if regExPSClearDiskErr.Match(cOut) {
-		return fmt.Errorf("Clear-Disk returned %v: %w", cOut, errDisk)
+	defer svc.Close()
+
+	disks, err := fnGetDisks(fmt.Sprintf("WHERE Number=%s", device.id), svc)
+	if err != nil {
+		return err
 	}
+	defer disks.Close()
+
+	if len(disks.Disks) < 1 {
+		return errDetectDisk
+	}
+
+	if err := fnWipe(&disks.Disks[0]); err != nil {
+		return err
+	}
+
+	if err := fnInitialize(&disks.Disks[0]); err != nil {
+		return err
+	}
+
 	// Update the disk to reflect the cleared partitions.
 	device.partitions = []Partition{}
-
-	// Set the partition style to GPT
-	// e.g. Set-Disk -Number 1 -PartitionStyle GPT
-	sBlock := fmt.Sprintf(`Set-Disk -Number %s -PartitionStyle GPT`, device.id)
-	sOut, err := powershellCmd(sBlock)
-	if err != nil {
-		return fmt.Errorf("powershell returned %v: %w", err, errPowershell)
-	}
-	if regExPSSetDiskErr.Match(sOut) {
-		return fmt.Errorf("Set-Disk returned %v: %w", sOut, errSetDisk)
-	}
-	//Update the disk to reflect the new partition style.
+	// Update the disk to reflect the new partition style.
 	device.partStyle = string(gpt)
 
 	return nil
@@ -493,6 +497,13 @@ func (part *Partition) FormatWithOptions(label string, filesystem FileSystem, mo
 	return nil
 }
 
+type iDisk interface {
+	Close()
+	Clear(removeData, removeOEM, zeroDisk bool) (glstor.ExtendedStatus, error)
+	ConvertStyle(style glstor.PartitionStyle) (glstor.ExtendedStatus, error)
+	Initialize(ps glstor.PartitionStyle) (glstor.ExtendedStatus, error)
+}
+
 type iService interface {
 	Close()
 	GetDisks(string) (glstor.DiskSet, error)
@@ -548,6 +559,16 @@ func windowsGetVolumes(path string, svc iService) (glstor.VolumeSet, error) {
 		return glstor.VolumeSet{}, errDetectVol
 	}
 	return vol, nil
+}
+
+func windowsInitialize(disk iDisk) error {
+	_, err := disk.ConvertStyle(glstor.GptStyle)
+	return err
+}
+
+func windowsWipe(disk iDisk) error {
+	_, err := disk.Clear(true, true, false)
+	return err
 }
 
 // powershell represents the OS command used to run a powershell cmdlet on

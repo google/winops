@@ -18,9 +18,7 @@
 package storage
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -28,79 +26,96 @@ import (
 	glstor "github.com/google/glazier/go/storage"
 )
 
-var (
-	disk1 = pGetPartitionResult{
-		DiskNum:      1,
-		DriveLetter:  "F",
-		PartitionNum: 1,
-		Path:         `\\?\Volume{78869425-9bc5-11ea-956e-f85971225104}\`,
-		Size:         eightGB,
-	}
-)
-
-func (r pGetPartitionResults) json(t *testing.T) []byte {
-	t.Helper()
-	j, err := json.Marshal(r)
-	if err != nil {
-		t.Errorf("json.Marshal() returned %v: ", err)
-	}
-	return j
-}
-
 func TestDetectPartitions(t *testing.T) {
+	errCon := errors.New("connect error")
+	errGetParts := errors.New("GetPartitions error")
+	errGetVols := errors.New("GetVolumes error")
 	tests := []struct {
-		desc              string
-		fakePowershellCmd func(string) ([]byte, error)
-		device            *Device
-		err               error
+		desc        string
+		device      *Device
+		parts       []glstor.Partition
+		errCon      error
+		errGetParts error
+		errGetVols  error
+		wantErr     error
+		wantParts   []Partition
 	}{
 		{
-			desc:   "empty deviceID",
-			device: &Device{},
-			err:    errInput,
+			desc:    "empty deviceID",
+			device:  &Device{},
+			wantErr: errInput,
 		},
 		{
-			desc: "powershell empty partition list error",
-			fakePowershellCmd: func(string) ([]byte, error) {
-				return []byte(`Get-Partition : No MSFT_Partition objects found with property`), nil
-			},
+			desc:    "connect error",
+			device:  &Device{id: "disk1"},
+			errCon:  errCon,
+			wantErr: errCon,
+		},
+		{
+			desc:    "empty partition list",
+			device:  &Device{id: "disk1"},
+			wantErr: errNoOutput,
+		},
+		{
+			desc:        "get partition error",
+			device:      &Device{id: "disk1"},
+			errGetParts: errGetParts,
+			wantErr:     errGetParts,
+		},
+		{
+			desc:   "get volumes error",
 			device: &Device{id: "disk1"},
-			err:    nil,
+			parts: []glstor.Partition{glstor.Partition{
+				DiskNumber:      1,
+				PartitionNumber: 2,
+				AccessPaths:     []string{`F:\`, `\\?\Volume{7b2d8681-0674-11ec-b6ba-401c8340851b}\`},
+			}},
+			errGetVols: errGetVols,
+			wantErr:    errGetVols,
 		},
 		{
-			desc:              "powershell error",
-			fakePowershellCmd: func(string) ([]byte, error) { return nil, errPowershell },
-			device:            &Device{id: "disk1"},
-			err:               errPowershell,
-		},
-		{
-			desc:              "empty partition list",
-			fakePowershellCmd: func(string) ([]byte, error) { return []byte{}, nil },
-			device:            &Device{id: "disk1"},
-			err:               errNoOutput,
-		},
-		{
-			desc:              "unmarshal error",
-			fakePowershellCmd: func(string) ([]byte, error) { return badJSON, nil },
-			device:            &Device{id: "disk1"},
-			err:               errUnmarshal,
-		},
-		{
-			desc:              "success",
-			fakePowershellCmd: func(string) ([]byte, error) { return pGetPartitionResults{disk1}.json(t), nil },
-			device:            &Device{id: "disk1"},
+			desc:   "success",
+			device: &Device{id: "disk1"},
+			parts: []glstor.Partition{
+				glstor.Partition{
+					DiskNumber:      1,
+					PartitionNumber: 1,
+				},
+				glstor.Partition{
+					DiskNumber:      1,
+					PartitionNumber: 2,
+					AccessPaths:     []string{`F:\`, `\\?\Volume{7b2d8681-0674-11ec-b6ba-401c8340851b}\`},
+				}},
+			wantParts: []Partition{Partition{
+				disk:       "1",
+				id:         "2",
+				path:       `\\?\Volume{7b2d8681-0674-11ec-b6ba-401c8340851b}\`,
+				fileSystem: UnknownFS,
+			}},
 		},
 	}
-
 	for _, tt := range tests {
-		powershellCmd = tt.fakePowershellCmd
+		fnConnect = func() (iService, error) {
+			return &fakeService{}, tt.errCon
+		}
+		fnGetPartitions = func(path string, vp iService) (glstor.PartitionSet, error) {
+			return glstor.PartitionSet{tt.parts}, tt.errGetParts
+		}
+		fnGetVolumes = func(path string, vp iService) (glstor.VolumeSet, error) {
+			return glstor.VolumeSet{[]glstor.Volume{glstor.Volume{}}}, tt.errGetVols
+		}
 		err := tt.device.DetectPartitions(false)
-		if !errors.Is(err, tt.err) {
-			t.Errorf("%s: err: %v, want: %v", tt.desc, err, tt.err)
+		if !errors.Is(err, tt.wantErr) {
+			t.Errorf("%s: err: got %v, want: %v", tt.desc, err, tt.wantErr)
+		}
+		if diff := cmp.Diff(tt.device.partitions, tt.wantParts, cmp.AllowUnexported(Partition{})); diff != "" {
+			t.Errorf("%s: got %v, want: %v", tt.desc, tt.device.partitions, tt.wantParts)
 		}
 	}
 }
 
+/* TODO: SelectPartition is platform agnostic; move it to storage_test.go
+ *
 func TestSelectPartition(t *testing.T) {
 	goodDisk := pGetPartitionResult{
 		DiskNum:      1,
@@ -195,6 +210,7 @@ func TestSelectPartition(t *testing.T) {
 		}
 	}
 }
+*/
 
 func TestWipe(t *testing.T) {
 	errCon := errors.New("Connect error")
@@ -351,6 +367,7 @@ func TestFormat(t *testing.T) {
 
 type fakeService struct {
 	ds    glstor.DiskSet
+	ps    glstor.PartitionSet
 	vs    glstor.VolumeSet
 	input string
 	err   error
@@ -361,6 +378,11 @@ func (fg *fakeService) Close() {}
 func (fg *fakeService) GetDisks(in string) (glstor.DiskSet, error) {
 	fg.input = in
 	return fg.ds, fg.err
+}
+
+func (fg *fakeService) GetPartitions(in string) (glstor.PartitionSet, error) {
+	fg.input = in
+	return fg.ps, fg.err
 }
 
 func (fg *fakeService) GetVolumes(in string) (glstor.VolumeSet, error) {

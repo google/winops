@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/google/logger"
@@ -58,8 +57,6 @@ var (
 
 	// Regex for powershell error handling.
 	regExPSGetVolErr           = regexp.MustCompile(`Get-Volume[\s\S]+`)
-	regExPSGetPartErr          = regexp.MustCompile(`Get-Partition[\s\S]+`)
-	regExPSGetPartNoPartErr    = regexp.MustCompile(`Get-Partition : No MSFT_Partition objects found[\s\S]+`)
 	regExPSNewPartErr          = regexp.MustCompile(`New-Partition[\s\S]+`)
 	regExPSRemoveAccessPathErr = regexp.MustCompile(`Remove-PartitionAccessPath[\s\S]+`)
 	regExPSSetPartErr          = regexp.MustCompile(`Set-Partition[\s\S]+`)
@@ -71,6 +68,7 @@ var (
 	setPartitionCmd = powershell
 	fnConnect       = windowsConnect
 	fnGetDisks      = windowsGetDisks
+	fnGetPartitions = windowsGetPartitions
 	fnGetVolumes    = windowsGetVolumes
 	fnInitialize    = windowsInitialize
 	fnFormat        = windowsFormat
@@ -150,17 +148,6 @@ func New(deviceID string) (*Device, error) {
 	return devices[0], nil
 }
 
-type pGetPartitionResult struct {
-	DiskNum      int    `json:"DiskNumber"`
-	DriveLetter  string `json:"DriveLetter,omitempty"`
-	PartitionNum int    `json:"PartitionNumber"`
-	Path         string `json:"Path"`
-	Size         uint64 `json:"Size"`
-	Type         string `json:"Type"`
-}
-
-type pGetPartitionResults []pGetPartitionResult
-
 // DetectPartitions updates a device with information for known partitions on
 // Windows.
 func (device *Device) DetectPartitions(assignLetter bool) error {
@@ -168,59 +155,62 @@ func (device *Device) DetectPartitions(assignLetter bool) error {
 		return fmt.Errorf("device ID was empty: %w", errInput)
 	}
 
-	// e.g.: Get-Partition -DiskNumber 1 | select @{n='Path';e={$_.AccessPaths[1]}}, Size | ConvertTo-Json
-	// Note on "Custom" or "Calculated" PowerShell properties, i.e., @{n='NAME';e={EXPRESSION}}
-	// Here we leverage them to derive the unique path to the volume, e.g.:
-	// "\\?\Volume{a11dd3fc-b4d2-11e9-b27d-3cf01167ff7e}\" as opposed to the
-	// drive letter, e.g.: "D:\". the output of Get-Partition is wrapped in an
-	// array to ensure that a single partition renders the same as multiple
-	// partitions.
-	pBlock := fmt.Sprintf(`ConvertTo-Json @(Get-Partition -DiskNumber %s | select @{n='Path';e={$_.AccessPaths[0]}}, Size, PartitionNumber, DriveLetter, Type, DiskNumber)`, device.id)
-	pOut, err := powershellCmd(pBlock)
+	svc, err := fnConnect()
 	if err != nil {
-		return fmt.Errorf("%v: %w", err, errPowershell)
+		return err
 	}
-	// PowerShell throws an error if there are no partitions. In this case we
-	// do not return the error and update the device with no partitions instead.
-	if regExPSGetPartErr.Match(pOut) {
-		if regExPSGetPartNoPartErr.Match(pOut) {
-			device.partitions = []Partition{}
-			return nil
-		}
-		return fmt.Errorf("powershell call %q returned %s: %w", pBlock, pOut, errDetectPart)
-	}
-	if len(pOut) == 0 {
-		return fmt.Errorf("unable to enumerate partitions: %w", errNoOutput)
-	}
+	defer svc.Close()
 
-	pGetPartition := pGetPartitionResults{}
-	if err := json.Unmarshal(pOut, &pGetPartition); err != nil {
-		return fmt.Errorf("json.Unmarshal returned %v for output %q : %w", err, pOut, errUnmarshal)
+	parts, err := fnGetPartitions(fmt.Sprintf("WHERE DiskNumber=%s", device.id), svc)
+	if err != nil {
+		return err
+	}
+	defer parts.Close()
+
+	if len(parts.Partitions) < 1 {
+		return fmt.Errorf("unable to enumerate partitions: %w", errNoOutput)
 	}
 
 	// Process available partitions and add them to the drive.
 	partitions := []Partition{}
-	for _, part := range pGetPartition {
-		fs, ok := fileSystems[part.Type]
+	for _, part := range parts.Partitions {
+		if len(part.AccessPaths) < 1 {
+			logger.Warningf("no access path for partition %v", part)
+			continue
+		}
+		path := ""
+		for _, p := range part.AccessPaths {
+			if strings.HasPrefix(p, `\\`) {
+				path = p
+			}
+		}
+		p := Partition{
+			disk:  fmt.Sprint(part.DiskNumber),
+			id:    fmt.Sprint(part.PartitionNumber),
+			path:  path,
+			mount: part.DriveLetter,
+			size:  part.Size,
+		}
+
+		vol, err := fnGetVolumes(path, svc)
+		if err != nil {
+			return err
+		}
+
+		fs, ok := fileSystems[vol.Volumes[0].FileSystem]
 		if !ok {
 			fs = UnknownFS
 		}
+		p.fileSystem = fs
+		vol.Close()
 
-		p := Partition{
-			disk:       strconv.Itoa(part.DiskNum),
-			id:         strconv.Itoa(part.PartitionNum),
-			path:       part.Path,
-			mount:      part.DriveLetter,
-			fileSystem: fs,
-			size:       part.Size,
-		}
 		// Assign drive letters for compatible partitions to allow reading of the
 		// device label. Drive letters are only assigned if they are already
 		// missing and the binary is running with elevated privileges. Drive letter
 		// assignments are gated on having only one partition on disk to limit
 		// unnecessary drive letter assignments. Errors here are not fatal but
 		// are logged.
-		if len(pGetPartition) == 1 && assignLetter {
+		if len(parts.Partitions) == 1 && assignLetter {
 			if err := p.Mount(""); err != nil {
 				logger.V(2).Infoln(err)
 			}
@@ -259,10 +249,6 @@ func (device *Device) Wipe() error {
 		return err
 	}
 	defer disks.Close()
-
-	if len(disks.Disks) < 1 {
-		return errDetectDisk
-	}
 
 	if err := fnWipe(&disks.Disks[0]); err != nil {
 		return err
@@ -507,6 +493,7 @@ type iDisk interface {
 type iService interface {
 	Close()
 	GetDisks(string) (glstor.DiskSet, error)
+	GetPartitions(string) (glstor.PartitionSet, error)
 	GetVolumes(string) (glstor.VolumeSet, error)
 }
 
@@ -547,6 +534,17 @@ func windowsGetDisks(query string, svc iService) (glstor.DiskSet, error) {
 		return glstor.DiskSet{}, errDetectDisk
 	}
 	return ds, nil
+}
+
+func windowsGetPartitions(query string, svc iService) (glstor.PartitionSet, error) {
+	ps, err := svc.GetPartitions(query)
+	if err != nil {
+		return glstor.PartitionSet{}, err
+	}
+	if len(ps.Partitions) < 1 {
+		return glstor.PartitionSet{}, errDetectPart
+	}
+	return ps, nil
 }
 
 func windowsGetVolumes(path string, svc iService) (glstor.VolumeSet, error) {

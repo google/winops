@@ -44,7 +44,6 @@ const (
 
 var (
 	// Wrapped errors for testing.
-	errDetectPart            = errors.New(`partition detection error`)
 	errNoOutput              = errors.New(`output was empty`)
 	errDetectVol             = errors.New(`volume detection error`)
 	errDriveLetter           = errors.New(`drive letter error`)
@@ -166,10 +165,6 @@ func (device *Device) DetectPartitions(assignLetter bool) error {
 		return err
 	}
 	defer parts.Close()
-
-	if len(parts.Partitions) < 1 {
-		return fmt.Errorf("unable to enumerate partitions: %w", errNoOutput)
-	}
 
 	// Process available partitions and add them to the drive.
 	partitions := []Partition{}
@@ -540,9 +535,6 @@ func windowsGetPartitions(query string, svc iService) (glstor.PartitionSet, erro
 	ps, err := svc.GetPartitions(query)
 	if err != nil {
 		return glstor.PartitionSet{}, err
-	}
-	if len(ps.Partitions) < 1 {
-		return glstor.PartitionSet{}, errDetectPart
 	}
 	return ps, nil
 }

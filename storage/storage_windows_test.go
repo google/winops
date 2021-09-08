@@ -52,15 +52,16 @@ func TestDetectPartitions(t *testing.T) {
 			wantErr: errCon,
 		},
 		{
-			desc:    "empty partition list",
-			device:  &Device{id: "disk1"},
-			wantErr: errNoOutput,
-		},
-		{
 			desc:        "get partition error",
 			device:      &Device{id: "disk1"},
 			errGetParts: errGetParts,
 			wantErr:     errGetParts,
+		},
+		{
+			desc:      "empty partition list",
+			device:    &Device{id: "disk1"},
+			parts:     []glstor.Partition{},
+			wantParts: []Partition{},
 		},
 		{
 			desc:   "get volumes error",
@@ -109,7 +110,7 @@ func TestDetectPartitions(t *testing.T) {
 			t.Errorf("%s: err: got %v, want: %v", tt.desc, err, tt.wantErr)
 		}
 		if diff := cmp.Diff(tt.device.partitions, tt.wantParts, cmp.AllowUnexported(Partition{})); diff != "" {
-			t.Errorf("%s: got %v, want: %v", tt.desc, tt.device.partitions, tt.wantParts)
+			t.Errorf("%s: produced diff %v", tt.desc, diff)
 		}
 	}
 }

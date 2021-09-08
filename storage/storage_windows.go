@@ -285,7 +285,11 @@ func (device *Device) PartitionWithOptions(label string, gType GptType, size uin
 	// Adjust arguments for larger removable drives.
 	sizeArg := "-UseMaximumSize"
 	if size > 0 {
-		sizeArg = fmt.Sprintf("-Size %d", size)
+		if size+partOffset < device.Size() {
+			sizeArg = fmt.Sprintf("-Size %d", size)
+		} else {
+			logger.V(1).Infof("shrinking partition size to accomodate offset")
+		}
 	}
 
 	// e.g.: New-Partition -DiskNumber 1 -GptType {ebd0a0a2-b9e5-4433-87c0-68b6b72699c7} -Offset 4294656 -Size 8GB

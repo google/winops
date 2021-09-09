@@ -79,6 +79,7 @@ var (
 	fileSystems = map[string]FileSystem{
 		"vfat":                 FAT32, // linux lsblk
 		"XINT13":               FAT,   // windows powershell
+		"FAT32":                FAT32, // windows
 		"FAT32 XINT13":         FAT32, // windows powershell
 		"System":               FAT32, // windows powershell (EFI is typically also FAT32)
 		"Basic":                FAT32, // windows powershell exFat or FAT32, both mountable
@@ -180,10 +181,10 @@ func (device *Device) FriendlyName() string {
 
 // Contents returns a list of the contents of a partition.
 func (part *Partition) Contents() ([]string, error) {
-	if part.mount == "" {
+	path := strings.TrimSpace(part.mount)
+	if path == "" {
 		return []string{}, errNotMounted
 	}
-	path := part.mount
 	if runtime.GOOS == "windows" && !strings.Contains(path, `:\`) {
 		path = path + `:\`
 	}

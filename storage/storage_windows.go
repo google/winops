@@ -311,8 +311,7 @@ func (device *Device) PartitionWithOptions(label string, gType GptType, size uin
 
 	// Update the disk with the new partition information.
 	device.partStyle = string(gpt)
-	addLetter := false
-	if err := device.DetectPartitions(addLetter); err != nil {
+	if err := device.DetectPartitions(false); err != nil {
 		return fmt.Errorf("DetectPartitions() for %q returned %v: %w", device.Identifier(), err, errDisk)
 	}
 	return nil

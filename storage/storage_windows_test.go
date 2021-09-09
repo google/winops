@@ -542,6 +542,31 @@ func TestWindowsInitialize(t *testing.T) {
 	}
 }
 
+func TestWindowsPartition(t *testing.T) {
+	errPart := errors.New("Partition error")
+	tests := []struct {
+		desc    string
+		errPart error
+		want    error
+	}{
+		{
+			desc:    "Partition error",
+			errPart: errPart,
+			want:    errPart,
+		},
+		{
+			desc: "success",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		err := windowsPartition(&FakeDisk{errPart: tt.errPart}, 0, false, BasicData)
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: windowsPartition() err = %v, want: %v", tt.desc, err, tt.want)
+		}
+	}
+}
+
 func TestWindowsWipe(t *testing.T) {
 	errClear := errors.New("Clear error")
 	tests := []struct {
@@ -573,12 +598,18 @@ type FakeDisk struct {
 	errClear      error
 	errConv       error
 	errInitialize error
+	errPart       error
 }
 
 func (f *FakeDisk) Close() {}
 
 func (f *FakeDisk) Clear(removeData, removeOEM, zeroDisk bool) (glstor.ExtendedStatus, error) {
 	return glstor.ExtendedStatus{}, f.errClear
+}
+
+func (f *FakeDisk) CreatePartition(size uint64, useMaximumSize bool, offset uint64, alignment int, driveLetter string, assignDriveLetter bool,
+	mbrType *glstor.MbrType, gptType *glstor.GptType, hidden, active bool) (glstor.Partition, glstor.ExtendedStatus, error) {
+	return glstor.Partition{}, glstor.ExtendedStatus{}, f.errPart
 }
 
 func (f *FakeDisk) Initialize(ps glstor.PartitionStyle) (glstor.ExtendedStatus, error) {

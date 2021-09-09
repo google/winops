@@ -36,10 +36,9 @@ const (
 	basic = `{ebd0a0a2-b9e5-4433-87c0-68b6b72699c7}`
 	// Windows will not format FAT32 paritions larger than 32 GB. These
 	// Allow us to handle drives >32GB on any platform.
-	maxWinFAT32Size = 30648342272                  // Maximum partition size for FAT32 on Windows.
-	partOffset      = 4294656                      // 4MiB alignment for read performance.
-	maxPartSize     = maxWinFAT32Size - partOffset // Maximum FAT32 size on Windows.
-
+	maxWinFAT32Size = 30648342272     // Maximum partition size for FAT32 on Windows.
+	maxPartSize     = maxWinFAT32Size // Maximum FAT32 size on Windows.
+	partAlignment   = 4194304         // 4MiB alignment for read performance.
 )
 
 var (
@@ -56,7 +55,6 @@ var (
 
 	// Regex for powershell error handling.
 	regExPSGetVolErr           = regexp.MustCompile(`Get-Volume[\s\S]+`)
-	regExPSNewPartErr          = regexp.MustCompile(`New-Partition[\s\S]+`)
 	regExPSRemoveAccessPathErr = regexp.MustCompile(`Remove-PartitionAccessPath[\s\S]+`)
 	regExPSSetPartErr          = regexp.MustCompile(`Set-Partition[\s\S]+`)
 
@@ -71,6 +69,7 @@ var (
 	fnGetVolumes    = windowsGetVolumes
 	fnInitialize    = windowsInitialize
 	fnFormat        = windowsFormat
+	fnPartition     = windowsPartition
 	fnWipe          = windowsWipe
 )
 
@@ -282,24 +281,32 @@ func (device *Device) PartitionWithOptions(label string, gType GptType, size uin
 	if len(device.partitions) != 0 {
 		return fmt.Errorf("partition table not empty: %w", errDisk)
 	}
+
 	// Adjust arguments for larger removable drives.
-	sizeArg := "-UseMaximumSize"
+	useMax := true
 	if size > 0 {
-		if size+partOffset < device.Size() {
-			sizeArg = fmt.Sprintf("-Size %d", size)
+		if size < device.Size() {
+			useMax = false
 		} else {
-			logger.V(1).Infof("shrinking partition size to accomodate offset")
+			size = 0 // let windows api use maximum available size
+			logger.V(1).Infof("shrinking partition size to fit on disk")
 		}
 	}
 
-	// e.g.: New-Partition -DiskNumber 1 -GptType {ebd0a0a2-b9e5-4433-87c0-68b6b72699c7} -Offset 4294656 -Size 8GB
-	psBlock := fmt.Sprintf(`New-Partition -DiskNumber %s -GptType '%s' -Offset %d %s`, device.id, gType, partOffset, sizeArg)
-	out, err := powershellCmd(psBlock)
+	svc, err := fnConnect()
 	if err != nil {
-		return fmt.Errorf("%v: %w", err, errPowershell)
+		return err
 	}
-	if regExPSNewPartErr.Match(out) {
-		return fmt.Errorf("%v: %w", out, errPartition)
+	defer svc.Close()
+
+	disks, err := fnGetDisks(fmt.Sprintf("WHERE Number=%s", device.id), svc)
+	if err != nil {
+		return err
+	}
+	defer disks.Close()
+
+	if err := fnPartition(&disks.Disks[0], size, useMax, gType); err != nil {
+		return fmt.Errorf("%w: %v", err, errPartition)
 	}
 
 	// Update the disk with the new partition information.
@@ -486,6 +493,8 @@ type iDisk interface {
 	Close()
 	Clear(removeData, removeOEM, zeroDisk bool) (glstor.ExtendedStatus, error)
 	ConvertStyle(style glstor.PartitionStyle) (glstor.ExtendedStatus, error)
+	CreatePartition(size uint64, useMaximumSize bool, offset uint64, alignment int, driveLetter string, assignDriveLetter bool,
+		mbrType *glstor.MbrType, gptType *glstor.GptType, hidden, active bool) (glstor.Partition, glstor.ExtendedStatus, error)
 	Initialize(ps glstor.PartitionStyle) (glstor.ExtendedStatus, error)
 }
 
@@ -557,6 +566,20 @@ func windowsGetVolumes(path string, svc iService) (glstor.VolumeSet, error) {
 
 func windowsInitialize(disk iDisk) error {
 	_, err := disk.ConvertStyle(glstor.GptStyle)
+	return err
+}
+
+func windowsPartition(disk iDisk, size uint64, max bool, gptType GptType) error {
+	var gt *glstor.GptType
+	switch string(gptType) {
+	case string(glstor.GptTypes.SystemPartition):
+		gt = &glstor.GptTypes.SystemPartition
+	case string(glstor.GptTypes.BasicData):
+		gt = &glstor.GptTypes.BasicData
+	}
+
+	part, _, err := disk.CreatePartition(size, max, 0, partAlignment, "", false, nil, gt, false, false)
+	part.Close()
 	return err
 }
 

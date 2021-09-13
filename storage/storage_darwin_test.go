@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 package storage
@@ -23,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/groob/plist"
+	glstor "github.com/google/glazier/go/storage"
 )
 
 var (
@@ -455,7 +457,7 @@ func TestWipe(t *testing.T) {
 		desc            string
 		fakeDiskutilCmd func(...string) ([]byte, error)
 		device          *Device
-		wantPartStyle   string
+		wantPartStyle   glstor.PartitionStyle
 		wantPartitions  []Partition
 		err             error
 	}{
@@ -475,7 +477,7 @@ func TestWipe(t *testing.T) {
 			desc:            "success",
 			fakeDiskutilCmd: func(...string) ([]byte, error) { return []byte(""), nil },
 			device:          device,
-			wantPartStyle:   string(gpt),
+			wantPartStyle:   glstor.GptStyle,
 			wantPartitions:  []Partition{},
 			err:             nil,
 		},

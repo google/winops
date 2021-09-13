@@ -104,7 +104,7 @@ func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*De
 			size:      d.Size,
 			make:      strings.TrimSpace(d.Manufacturer),
 			model:     strings.TrimSpace(d.Model),
-			partStyle: string(d.PartitionStyle),
+			partStyle: glstor.PartitionStyle(d.PartitionStyle),
 		}
 		if removableOnly && !device.removable {
 			continue
@@ -255,7 +255,7 @@ func (device *Device) Wipe() error {
 	// Update the disk to reflect the cleared partitions.
 	device.partitions = []Partition{}
 	// Update the disk to reflect the new partition style.
-	device.partStyle = string(gpt)
+	device.partStyle = glstor.GptStyle
 
 	return nil
 }
@@ -266,7 +266,7 @@ func (device *Device) Partition(label string) error {
 	if device.size >= maxPartSize {
 		size = maxPartSize
 	}
-	return device.PartitionWithOptions(label, BasicData, size)
+	return device.PartitionWithOptions(label, glstor.GptTypes.BasicData, size)
 }
 
 // PartitionWithOptions partitions a GPT-style device with a single partition.
@@ -274,7 +274,7 @@ func (device *Device) Partition(label string) error {
 // a corresponding PowerShell error will be observed. The maximum amount
 // of available space is used for the partition span. On Windows, this is
 // limited to 32 GB for FAT32.
-func (device *Device) PartitionWithOptions(label string, gType GptType, size uint64) error {
+func (device *Device) PartitionWithOptions(label string, gType glstor.GptType, size uint64) error {
 	if device.id == "" {
 		return errInput
 	}
@@ -310,7 +310,7 @@ func (device *Device) PartitionWithOptions(label string, gType GptType, size uin
 	}
 
 	// Update the disk with the new partition information.
-	device.partStyle = string(gpt)
+	device.partStyle = glstor.GptStyle
 	if err := device.DetectPartitions(false); err != nil {
 		return fmt.Errorf("DetectPartitions() for %q returned %v: %w", device.Identifier(), err, errDisk)
 	}
@@ -568,7 +568,7 @@ func windowsInitialize(disk iDisk) error {
 	return err
 }
 
-func windowsPartition(disk iDisk, size uint64, max bool, gptType GptType) error {
+func windowsPartition(disk iDisk, size uint64, max bool, gptType glstor.GptType) error {
 	var gt *glstor.GptType
 	switch string(gptType) {
 	case string(glstor.GptTypes.SystemPartition):

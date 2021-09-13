@@ -560,7 +560,7 @@ func TestWindowsPartition(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := windowsPartition(&FakeDisk{errPart: tt.errPart}, 0, false, BasicData)
+		err := windowsPartition(&FakeDisk{errPart: tt.errPart}, 0, false, glstor.GptTypes.BasicData)
 		if !errors.Is(err, tt.want) {
 			t.Errorf("%s: windowsPartition() err = %v, want: %v", tt.desc, err, tt.want)
 		}

@@ -25,20 +25,14 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-)
 
-// partStyle provides standardized partition types descriptions (e.g. GPT, MBR)
-type partStyle string
+	glstor "github.com/google/glazier/go/storage"
+)
 
 // FileSystem provides standardized file system descriptions (e.g. FAT32, NTFS)
 type FileSystem string
 
 const (
-	// partition types.
-	mbr       partStyle = "MBR"
-	gpt       partStyle = "GPT"
-	unknownPS partStyle = "Unknown"
-
 	// NTFS is the NTFS filesystem.
 	NTFS FileSystem = "NTFS"
 	// ExFAT is the ExFAT filesystem.
@@ -62,13 +56,13 @@ var (
 	// linux   - lsblk (pttype column)
 	// windows - powershell Get-Disk (PartitionStyle field)
 	// darwin  - diskutil (Type field)
-	partStyles = map[string]partStyle{
-		"dos":                    mbr, // linux lsblk
-		"gpt":                    gpt, // linux lsblk
-		"GPT":                    gpt, // windows powershell
-		"MBR":                    mbr, // windows powershell
-		"GUID_partition_scheme":  gpt, // darwin diskutil
-		"FDisk_partition_scheme": mbr, // darwin diskutil
+	partStyles = map[string]glstor.PartitionStyle{
+		"dos":                    glstor.MbrStyle, // linux lsblk
+		"gpt":                    glstor.GptStyle, // linux lsblk
+		"GPT":                    glstor.GptStyle, // windows powershell
+		"MBR":                    glstor.MbrStyle, // windows powershell
+		"GUID_partition_scheme":  glstor.GptStyle, // darwin diskutil
+		"FDisk_partition_scheme": glstor.MbrStyle, // darwin diskutil
 	}
 
 	// fileSystems maps the filesystem identifiers for platforms
@@ -108,20 +102,6 @@ var (
 	errWipe         = errors.New("disk wipe error")
 )
 
-// GptType describes a GPT partition type.
-type GptType string
-
-var (
-	// SystemPartition is the Windows system partition.
-	SystemPartition GptType = "{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}"
-	// MicrosoftReserved is the Microsoft Reserved partition.
-	MicrosoftReserved GptType = "{e3c9e316-0b5c-4db8-817d-f92df00215ae}"
-	// BasicData is a basic data partition.
-	BasicData GptType = "{ebd0a0a2-b9e5-4433-87c0-68b6b72699c7}"
-	// MicrosoftRecovery is the Windows recovery partition.
-	MicrosoftRecovery GptType = "{de94bba4-06d1-4d40-a16a-bfd50179d6ac}"
-)
-
 // Device describes a physical device that is currently
 // attached to the system.
 type Device struct {
@@ -135,7 +115,7 @@ type Device struct {
 	// Partitioning Information
 	// TODO (b/151981913) This remains a string for now to retain compatibility
 	// with main. It will eventually be moved to type 'partition'.
-	partStyle  string // Typically "GPT", "MBR", or blank (for an uninitialized disk).
+	partStyle  glstor.PartitionStyle
 	partitions []Partition
 }
 

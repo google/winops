@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
 // +build linux
 
 package storage
@@ -21,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+
+	glstor "github.com/google/glazier/go/storage"
 )
 
 type lsblkResult struct {
@@ -162,7 +165,7 @@ func TestSearch(t *testing.T) {
 					size:      large.Size,
 					make:      large.Vendor,
 					model:     large.Model,
-					partStyle: "GPT",
+					partStyle: glstor.GptStyle,
 					partitions: []Partition{
 						{
 							id:         "sdb1",
@@ -255,7 +258,7 @@ func TestNew(t *testing.T) {
 				size:      sdb.Size,
 				make:      sdb.Vendor,
 				model:     sdb.Model,
-				partStyle: "GPT",
+				partStyle: glstor.GptStyle,
 				partitions: []Partition{
 					{
 						id:         "",
@@ -500,7 +503,7 @@ func TestPartition(t *testing.T) {
 		desc          string
 		fakeSudoCmd   func(args ...string) error
 		device        *Device
-		endPartStyle  string
+		endPartStyle  glstor.PartitionStyle
 		endPartitions []Partition
 		err           error
 	}{
@@ -527,7 +530,7 @@ func TestPartition(t *testing.T) {
 			desc:          "success",
 			fakeSudoCmd:   func(args ...string) error { return nil },
 			device:        unpartitionedDevice,
-			endPartStyle:  string(gpt),
+			endPartStyle:  glstor.GptStyle,
 			endPartitions: []Partition{goodPartition},
 			err:           nil,
 		},

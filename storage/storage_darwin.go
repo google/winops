@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 package storage
@@ -24,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/groob/plist"
+	glstor "github.com/google/glazier/go/storage"
 )
 
 const (
@@ -150,7 +152,7 @@ func New(deviceID string) (*Device, error) {
 	}
 	partStyle, ok := partStyles[pDevice.PartitionStyle]
 	if !ok {
-		partStyle = unknownPS
+		partStyle = glstor.UnknownStyle
 	}
 	manufacturer := strings.Split(strings.Replace(pDevice.FullName, pDevice.ModelName, "", 1), " ")[0]
 
@@ -162,7 +164,7 @@ func New(deviceID string) (*Device, error) {
 		size:      pDevice.Size,
 		make:      manufacturer,
 		model:     strings.TrimSpace(pDevice.ModelName),
-		partStyle: string(partStyle),
+		partStyle: partStyle,
 	}
 	// Add Partition Information
 	if err := device.DetectPartitions(false); err != nil {
@@ -230,7 +232,7 @@ func (device *Device) Wipe() error {
 		return fmt.Errorf("diskutilCmd(%q) returned %q, %v: %w", params, out, err, errDiskutil)
 	}
 	// Update the receiver (device).
-	device.partStyle = string(gpt)
+	device.partStyle = glstor.GptStyle
 	device.partitions = []Partition{}
 
 	return nil
@@ -263,7 +265,7 @@ func (device *Device) Partition(label string) error {
 		return fmt.Errorf("diskutilCmd(%q) returned %q, %v: %w", eParams, out, err, errRemoval)
 	}
 
-	device.partStyle = string(gpt)
+	device.partStyle = glstor.GptStyle
 	// Redetect the partitions to pickup the right mount names.
 	if err := device.DetectPartitions(false); err != nil {
 		return fmt.Errorf("DetectPartitions() for %q returned %v: %w", device.Identifier(), err, errPartition)

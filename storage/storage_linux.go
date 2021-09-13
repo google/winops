@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
 // +build linux
 
 package storage
@@ -26,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/godbus/dbus"
+	glstor "github.com/google/glazier/go/storage"
 )
 
 var (
@@ -91,7 +93,7 @@ func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*De
 	for _, bd := range result.BlockDevices {
 		partStyle, ok := partStyles[bd.PTType]
 		if !ok {
-			partStyle = unknownPS
+			partStyle = glstor.UnknownStyle
 		}
 		// Build Device
 		device := &Device{
@@ -101,7 +103,7 @@ func Search(deviceID string, minSize, maxSize uint64, removableOnly bool) ([]*De
 			size:      bd.Size,
 			make:      strings.TrimSpace(bd.Vendor),
 			model:     strings.TrimSpace(bd.Model),
-			partStyle: string(partStyle),
+			partStyle: partStyle,
 		}
 		// Add Partition Information
 		if err := device.DetectPartitions(false); err != nil {
@@ -211,7 +213,7 @@ func (device *Device) Wipe() error {
 	}
 
 	// Update the receiver (device).
-	device.partStyle = ""
+	device.partStyle = glstor.UnknownStyle
 	device.partitions = []Partition{}
 
 	return nil
@@ -235,7 +237,7 @@ func (device *Device) Partition(label string) error {
 		return fmt.Errorf("%v: %w", err, errSudo)
 	}
 	// Update the disk with the new partition information and partition style.
-	device.partStyle = string(gpt)
+	device.partStyle = glstor.GptStyle
 	device.partitions = []Partition{
 		Partition{
 			id:         fmt.Sprintf(`%s1`, device.id),

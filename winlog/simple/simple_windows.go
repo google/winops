@@ -52,21 +52,20 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 		return fmt.Errorf("double subscribed Windows Event for: %+v", e)
 	}
 
-	var err error
-	e.config, err = winlog.DefaultSubscribeConfig()
+	cfg, err := winlog.DefaultSubscribeConfig()
 	if err != nil {
 		return fmt.Errorf("winlog.DefaultSubscribeConfig failed: %w", err)
 	}
 	if bookmark == "" {
-		e.config.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
+		cfg.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
 		if err != nil {
 			return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
 		}
 	} else {
-		e.config.Bookmark, err = wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
+		cfg.Bookmark, err = wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
 		if err != nil {
 			glog.Warningf("Create a new bookmark because the existing bookmark might be corrupted: %s", bookmark)
-			e.config.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
+			cfg.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
 			if err != nil {
 				return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
 			}
@@ -96,13 +95,14 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 			return fmt.Errorf("Build structured XML query error: %w", err)
 		}
 		glog.V(1).Infof("Built the structured XML Query: %s", xmlQuery)
-		e.config.Query, err = syscall.UTF16PtrFromString(string(xmlQuery))
+		cfg.Query, err = syscall.UTF16PtrFromString(string(xmlQuery))
 		if err != nil {
 			return fmt.Errorf("syscall.UTF16PtrFromString failed: %w", err)
 		}
 	}
 
-	e.config.Flags = wevtapi.EvtSubscribeStartAfterBookmark
+	cfg.Flags = wevtapi.EvtSubscribeStartAfterBookmark
+	e.config = cfg
 	e.subscription, err = winlog.Subscribe(e.config)
 	e.publisherCache = make(map[string]windows.Handle)
 	return err

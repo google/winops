@@ -20,10 +20,6 @@ package winlog
 import (
 	"encoding/xml"
 	"fmt"
-	"io"
-	"log"
-
-	"golang.org/x/sys/windows/registry"
 )
 
 // QueryList is the root node for the defined Query schema.
@@ -52,37 +48,4 @@ func BuildStructuredXMLQuery(queries map[string]string) ([]byte, error) {
 		return nil, fmt.Errorf("xml.Marshal failed: %v", err)
 	}
 	return xmlQuery, nil
-}
-
-// QueryRegConfiguration reads a registry key for channels and XPaths in value data pairs.
-func QueryRegConfiguration(regKey registry.Key, path string, maxChannels int) (map[string]string, error) {
-	k, err := registry.OpenKey(regKey, path, registry.QUERY_VALUE)
-	if err != nil {
-		return nil, fmt.Errorf("registry.OpenKey failed: %v", err)
-	}
-	defer k.Close()
-
-	// Read channel paths.
-	channels, err := k.ReadValueNames(maxChannels)
-	if err != io.EOF && err != nil {
-		return nil, fmt.Errorf("registry.ReadValueNames failed: %v", err)
-	}
-
-	// Fill map.
-	queries := make(map[string]string)
-	for _, channel := range channels {
-		xpath, val, err := k.GetStringValue(channel)
-		if err != nil {
-			// If value isn't a REG_SZ, skip.
-			if val != registry.SZ {
-				log.Printf("QueryRegConfiguration: unexpected value type (%d) found for %s.", val, channel)
-				continue
-			}
-			// Return all other errors.
-			return nil, fmt.Errorf("registry.GetStringValue failed: %v", err)
-		}
-		queries[channel] = xpath
-	}
-
-	return queries, nil
 }

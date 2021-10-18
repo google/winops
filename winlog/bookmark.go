@@ -19,9 +19,7 @@ package winlog
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"syscall"
 
 	"golang.org/x/sys/windows/registry"
@@ -59,29 +57,6 @@ func CreateBookmark(b string) (windows.Handle, error) {
 	return bookmark, nil
 }
 
-// GetBookmarkFile reads a file from disk for a bookmark string.
-// If no bookmark exists or is malformed, it creates one. Sets a handle
-// to the bookmark to be used in a subscription or query.
-func GetBookmarkFile(config *SubscribeConfig, path string) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Println("No bookmark file found.")
-			config.Bookmark, err = CreateBookmark("")
-			if err != nil {
-				return fmt.Errorf("CreateBookmark failed: %v", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("ioutil.ReadFile failed: %v", err)
-	}
-	config.Bookmark, err = CreateBookmark(string(b))
-	if err != nil {
-		return fmt.Errorf("CreateBookmark failed: %v", err)
-	}
-	return nil
-}
-
 // GetBookmarkRegistry reads a registry key for a bookmark string.
 // Returns an error if the key does not exist.
 // If no bookmark exists or is malformed, it creates one. Sets a handle
@@ -105,23 +80,6 @@ func GetBookmarkRegistry(config *SubscribeConfig, regKey registry.Key, path stri
 	config.Bookmark, err = CreateBookmark(b)
 	if err != nil {
 		return fmt.Errorf("CreateBookmark failed: %v", err)
-	}
-
-	return nil
-}
-
-// SetBookmarkFile creates a file representing a Windows Event Log bookmark.
-func SetBookmarkFile(bookmark windows.Handle, path string) error {
-	// Render bookmark.
-	bookmarkXML, err := RenderFragment(bookmark, wevtapi.EvtRenderBookmark)
-	if err != nil {
-		return fmt.Errorf("RenderFragment failed: %v", err)
-	}
-
-	// Persist rendered bookmark to file path.
-	err = ioutil.WriteFile(path, []byte(bookmarkXML), 0644)
-	if err != nil {
-		return fmt.Errorf("ioutil.WriteFile failed: %v", err)
 	}
 
 	return nil

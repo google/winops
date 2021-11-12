@@ -247,7 +247,8 @@ func (device *Device) Partition(label string) error {
 	}
 	// A blank label is replaced by noformat. Darwin skips the formatting and
 	// mounting for noformat.
-	lblParam := label
+	// Label should be uppercase otherwise diskutil will thow an error. (b/197085434)
+	lblParam := strings.ToUpper(label)
 	if label == "" {
 		lblParam = "%noformat%"
 	}

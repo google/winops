@@ -581,11 +581,12 @@ func TestPartition(t *testing.T) {
 			desc: "label is set",
 			fakeDiskutilCmd: func(args ...string) ([]byte, error) {
 				for _, arg := range args {
-					if arg == "somelabel" || arg == "list" || arg == "eraseVolume" {
+					// Label will be translated to uppercase. (b/197085434)
+					if arg == "SOMELABEL" || arg == "list" || arg == "eraseVolume" {
 						return goodDiskUtil.plist(t), nil
 					}
 				}
-				return []byte(""), errors.New("noformat not present")
+				return []byte(""), errors.New("label not set correctly")
 			},
 			label:  "somelabel",
 			device: &Device{id: "disk2"},

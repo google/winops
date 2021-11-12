@@ -270,8 +270,37 @@ func Subscribe(config *SubscribeConfig) (windows.Handle, error) {
 		config.Callback,
 		config.Flags)
 	if err != nil {
-		return 0, fmt.Errorf("wevtapi.EvtSubscribe failed: %v", err)
+		return 0, fmt.Errorf("wevtapi.EvtSubscribe(): %w", err)
 	}
 
 	return subscription, nil
+}
+
+// Close closes the subscribe config. Note that the subscribe config
+// needs to outlive the subscription. Close returns one of the
+// encountered errors, but it still attempts to close everything
+// that's needed.
+func (cfg *SubscribeConfig) Close() (closeErr error) {
+	if cfg.Bookmark != 0 {
+		if err := wevtapi.EvtClose(cfg.Bookmark); err != nil {
+			closeErr = fmt.Errorf("wevtapi.EvtClose(cfg.Bookmark): %w", err)
+		} else { // success
+			cfg.Bookmark = 0
+		}
+	}
+	if cfg.Session != 0 {
+		if err := windows.CloseHandle(cfg.Session); err != nil {
+			closeErr = fmt.Errorf("windows.CloseHandle(cfg.Session): %w", err)
+		} else { // success
+			cfg.Session = 0
+		}
+	}
+	if cfg.SignalEvent != 0 {
+		if err := windows.CloseHandle(cfg.SignalEvent); err != nil {
+			closeErr = fmt.Errorf("windows.CloseHandle(cfg.SignalEvent): %w", err)
+		} else { // success
+			cfg.SignalEvent = 0
+		}
+	}
+	return closeErr
 }

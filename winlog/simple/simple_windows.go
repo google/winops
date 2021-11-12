@@ -47,7 +47,7 @@ func NewWindowsEvent() Event {
 
 // Subscribe creates the bookmark from XML formatted string and initializes a subscription for
 // Windows Event Log.
-func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error {
+func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subErr error) {
 	if e.config != nil || e.subscription != 0 {
 		return fmt.Errorf("double subscribed Windows Event for: %+v", e)
 	}
@@ -56,21 +56,20 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 	if err != nil {
 		return fmt.Errorf("winlog.DefaultSubscribeConfig failed: %w", err)
 	}
-	if bookmark == "" {
-		cfg.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
-		if err != nil {
-			return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
+	defer func() {
+		if subErr == nil {
+			return // on success, no cleanup
 		}
-	} else {
-		cfg.Bookmark, err = wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
-		if err != nil {
-			glog.Warningf("Create a new bookmark because the existing bookmark might be corrupted: %s", bookmark)
-			cfg.Bookmark, err = wevtapi.EvtCreateBookmark(nil)
-			if err != nil {
-				return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
-			}
+		if err := cfg.Close(); err != nil {
+			glog.Warningf("cfg.Close(): %v", err)
 		}
+	}()
+
+	bmh, err := makeBookmark(bookmark)
+	if err != nil {
+		return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
 	}
+	cfg.Bookmark = bmh
 
 	if len(query) != 0 {
 		channels, err := winlog.AvailableChannels()
@@ -106,6 +105,18 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error
 	e.subscription, err = winlog.Subscribe(e.config)
 	e.publisherCache = make(map[string]windows.Handle)
 	return err
+}
+
+// makeBookmark calls EvtCreateBookmark with the given bookmark string
+// or with nil on error or if the input was empty.
+func makeBookmark(bookmark string) (windows.Handle, error) {
+	if bookmark != "" {
+		h, err := wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
+		if err == nil { // success! (otherwise, fallback to empty bookmark)
+			return h, err
+		}
+	}
+	return wevtapi.EvtCreateBookmark(nil)
 }
 
 // WaitForSingleObject waits for new events to arrive. Returns true if the event
@@ -144,17 +155,32 @@ func (e *WindowsEvent) ResetEvent() error {
 }
 
 // Close closes the subscription of Windows Event Log and releases the resource.
-func (e *WindowsEvent) Close() error {
-	if err := winlog.Close(e.subscription); err != nil {
-		return fmt.Errorf("closing subscription: %w", err)
-	}
-	for _, v := range e.publisherCache {
-		if err := winlog.Close(v); err != nil {
-			return fmt.Errorf("closing publisher metadata: %w", err)
+func (e *WindowsEvent) Close() (closeErr error) {
+	if e.subscription != 0 {
+		if err := winlog.Close(e.subscription); err != nil {
+			closeErr = fmt.Errorf("closing subscription: %w", err)
+		} else { // success
+			e.subscription = 0
 		}
 	}
-	e.subscription = 0
-	e.publisherCache = nil
-	e.config = nil
-	return nil
+
+	for k, v := range e.publisherCache {
+		if v == 0 {
+			continue
+		}
+		if err := winlog.Close(v); err != nil {
+			closeErr = fmt.Errorf("closing publisher metadata: %w", err)
+		} else { // success
+			delete(e.publisherCache, k)
+		}
+	}
+
+	if e.config != nil {
+		if err := e.config.Close(); err != nil {
+			closeErr = fmt.Errorf("closing config: %w", err)
+		} else { // success
+			e.config = nil
+		}
+	}
+	return closeErr
 }

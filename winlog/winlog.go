@@ -244,12 +244,15 @@ func RenderFormattedMessageXML(event windows.Handle, renderedEvent string, local
 		return "", fmt.Errorf("wevtapi.EvtFormatMessage failed to get buffer size: %v", err)
 	}
 
-	buf := make([]uint16, bufferUsed/2)
+	buf := make([]uint16, bufferUsed)
 
 	// Render the event as a formatted XML string with RenderingInfo node.
 	err = wevtapi.EvtFormatMessage(pubHandle, event, 0, 0, 0, wevtapi.EvtFormatMessageXml,
 		bufferUsed, (*byte)(unsafe.Pointer(&buf[0])), &bufferUsed)
-	if err != nil {
+	if err == windows.ERROR_EVT_MESSAGE_ID_NOT_FOUND {
+		// Workaround for Windows 11 (b/202285931)
+		return renderedEvent, nil
+	} else if err != nil {
 		return "", fmt.Errorf("wevtapi.EvtFormatMessage failed to render events as formatted XML: %v", err)
 	}
 

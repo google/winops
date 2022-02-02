@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fakewinlog
+package fakewinlog_test
 
 import (
 	"encoding/gob"
@@ -24,8 +24,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
+	"github.com/google/winops/winlog/fakewinlog"
 	"github.com/google/winops/winlog/simple"
 )
+
+var _ simple.Event = (*fakewinlog.FakeWindowsAPI)(nil)
 
 func TestRenderedEvents(t *testing.T) {
 	subscriber, err := setupSubscriber(
@@ -116,7 +119,7 @@ func TestBookmarkCloseReopen(t *testing.T) {
 }
 
 func TestWaitForSingleObject(t *testing.T) {
-	subscriber := &FakeWindowsAPI{Events: map[string][]string{}}
+	subscriber := &fakewinlog.FakeWindowsAPI{Events: map[string][]string{}}
 	subscriber.Subscribe("", map[string]string{"foo": "*"})
 
 	// Before we have events, should return false.
@@ -158,7 +161,7 @@ func TestWaitForSingleObject(t *testing.T) {
 }
 
 func TestWaitForSingleObjectInitialState(t *testing.T) {
-	subscriber := &FakeWindowsAPI{Events: map[string][]string{"foo": []string{"foo1"}}}
+	subscriber := &fakewinlog.FakeWindowsAPI{Events: map[string][]string{"foo": []string{"foo1"}}}
 	subscriber.Subscribe("", map[string]string{"foo": "*"})
 
 	// This subscriber should start off with the event initially in the
@@ -168,8 +171,8 @@ func TestWaitForSingleObjectInitialState(t *testing.T) {
 	}
 }
 
-func setupSubscriber(events map[string][]string, bookmark map[string]int, query map[string]string) (*FakeWindowsAPI, error) {
-	subscriber := &FakeWindowsAPI{Events: events}
+func setupSubscriber(events map[string][]string, bookmark map[string]int, query map[string]string) (*fakewinlog.FakeWindowsAPI, error) {
+	subscriber := &fakewinlog.FakeWindowsAPI{Events: events}
 	bm, err := serializeBookmark(bookmark)
 	if err != nil {
 		return nil, errors.Wrap(err, "serializeBookmark")

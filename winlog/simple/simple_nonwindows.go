@@ -17,7 +17,13 @@
 
 package simple
 
-// NewWindowsEvent returns nil for linux and darwin platform.
+import (
+	"github.com/google/winops/winlog/fakewinlog"
+)
+
+var _ Event = (*fakewinlog.FakeWindowsAPI)(nil)
+
+// NewWindowsEvent returns FakeWindowsAPI for linux and darwin platform.
 func NewWindowsEvent() Event {
-	return nil
+	return &fakewinlog.FakeWindowsAPI{}
 }

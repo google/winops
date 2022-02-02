@@ -19,8 +19,6 @@ import (
 	"errors"
 	"strings"
 	"time"
-
-	"github.com/google/winops/winlog/simple"
 )
 
 // FakeWindowsAPI provides a fake implementation of winlog's simple.Event
@@ -37,8 +35,6 @@ type FakeWindowsAPI struct {
 	query          map[string]string
 	eventSignalled bool
 }
-
-var _ simple.Event = (*FakeWindowsAPI)(nil)
 
 // Subscribe initializes a subscription for Windows Event Log. Close must be called when
 // finished.

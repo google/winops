@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build windows
-
 // Package powershell provides simple handling for invoking PowerShell cmdlets
 // on Windows systems and handling errors in a meaningful way.
 package powershell
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
 	"regexp"
 )
 
@@ -64,56 +60,9 @@ var (
 	// ErrSupplemental represents output that contians a supplemental error.
 	ErrSupplemental = errors.New("supplemental error")
 	errCompile      = errors.New("compile error")
-
-	// Dependency injection for testing.
-	powerShellCmd = powerShell
+	// ErrUnsupported indicates an unsupported function call
+	ErrUnsupported = errors.New("unsupported function call")
 )
-
-// powerShell represents the OS command used to run a powerShell cmdlet on
-// Windows. The raw output is provided to the caller for error handling.
-// The params parameter should be populated with all of the required
-// parameters to invoke powershell.exe from the command line. If an error is
-// returne to the OS, it will be returned here.
-func powerShell(params []string) ([]byte, error) {
-	out, err := exec.Command("powershell.exe", params...).CombinedOutput()
-	if err != nil {
-		return []byte{}, fmt.Errorf(`exec.Command("powershell.exe", %s) command returned: %q: %v`, params, out, err)
-	}
-	return out, nil
-}
-
-// Command executes the provided command string in PowerShell, using the
-// Command parameter. It requires a string representing the command.
-// Optionally, the caller may specify a slice of strings that should be
-// considered errors if present and an alternate PSConfig.
-//
-// Example psCmd: Get-Volume D | select FileSystemLabel | ConvertTo-Json
-// Documentation: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1#-command
-func Command(psCmd string, supplemental []string, config *PSConfig) ([]byte, error) {
-	// Apply the default PSConfig if none was specified.
-	if config == nil {
-		c := defaultConfig
-		config = &c
-
-	}
-	// Embed ErrorActionPreference and generate parameters.
-	cmd := fmt.Sprintf(`$ErrorActionPreference="%s"; %s`, config.ErrAction, psCmd)
-	params := append(config.Params, "-Command", cmd)
-
-	// Invoke PowerShell
-	out, err := powerShellCmd(params)
-	if err != nil {
-		return out, fmt.Errorf("powershell returned %v: %w", err, ErrPowerShell)
-	}
-
-	// Determine if the output contains a supplemental error.
-	if err := supplementalErr(out, supplemental); err != nil {
-		return out, fmt.Errorf("supplementalErr returned %v: %w", err, ErrSupplemental)
-	}
-
-	// Return successful output.
-	return out, nil
-}
 
 // supplementalErr checks the PowerShell output to determine if it contains
 // any user specified error strings.
@@ -152,15 +101,4 @@ type VersionTable struct {
 	WSManStackVersion         VersionDetail
 	PSRemotingProtocolVersion VersionDetail
 	SerializationVersion      VersionDetail
-}
-
-// Version gathers powershell version information from the host, returns an error if version information cannot be obtained.
-func Version() (VersionTable, error) {
-	var psv VersionTable
-	o, err := Command(`$PSVersionTable | ConvertTo-Json`, []string{}, nil)
-	if err != nil {
-		return psv, err
-	}
-	err = json.Unmarshal(o, &psv)
-	return psv, err
 }

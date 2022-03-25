@@ -27,6 +27,7 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/sys/windows"
+	"golang.org/x/time/rate"
 	"github.com/google/winops/winlog/wevtapi"
 )
 
@@ -35,6 +36,8 @@ const (
 	localMachine = 0 // Identifies the local machine for Windows API functions.
 	mustBeZero   = 0 // For reserved Windows API function parameters.
 )
+
+var every5Minutes = rate.NewLimiter(rate.Every(5*time.Minute), 10)
 
 // SubscribeConfig describes parameters for initializing a Windows Event Log subscription.
 type SubscribeConfig struct {
@@ -134,7 +137,9 @@ func GetRenderedEvents(config *SubscribeConfig, publisherCache map[string]window
 		// Attempt to render the full event using the basic event.
 		renderedEvent, err := RenderFormattedMessageXML(event, fragment, locale, publisherCache)
 		if err != nil {
-			glog.Errorf("Failed to fully render event, returning fragment: %v\n%v", err, fragment)
+			if every5Minutes.Allow() {
+				glog.Errorf("Failed to fully render event, returning fragment: %v\n%v", err, fragment)
+			}
 			renderedEvent = fragment
 		}
 		renderedEvents = append(renderedEvents, renderedEvent)

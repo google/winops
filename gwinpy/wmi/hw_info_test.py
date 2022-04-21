@@ -45,7 +45,13 @@ class HwInfoTest(unittest.TestCase):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(SerialNumber='12345')]
     self.assertEqual(self.hwinfo.BiosSerial(), '12345')
     self.hwinfo.wmi.Query.return_value = None
-    self.assertEqual(self.hwinfo.BiosSerial(), None)
+    self.assertIsNone(self.hwinfo.BiosSerial())
+
+  def testBIOSVersion(self):
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(Version='12345')]
+    self.assertEqual(self.hwinfo.BIOSVersion(), '12345')
+    self.hwinfo.wmi.Query.return_value = None
+    self.assertIsNone(self.hwinfo.BIOSVersion())
 
   def testChassisType(self):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(chassistypes=['10'])]
@@ -55,7 +61,7 @@ class HwInfoTest(unittest.TestCase):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(Manufacturer='Dell ')]
     self.assertEqual(self.hwinfo.ComputerSystemManufacturer(), 'Dell')
     self.hwinfo.wmi.Query.return_value = None
-    self.assertEqual(self.hwinfo.ComputerSystemManufacturer(), None)
+    self.assertIsNone(self.hwinfo.ComputerSystemManufacturer())
 
   def testComputerSystemModel(self):
     self.hwinfo.wmi.Query.return_value = [
@@ -63,13 +69,13 @@ class HwInfoTest(unittest.TestCase):
     ]
     self.assertEqual(self.hwinfo.ComputerSystemModel(), 'HP Z620 Workstation')
     self.hwinfo.wmi.Query.return_value = None
-    self.assertEqual(self.hwinfo.ComputerSystemModel(), None)
+    self.assertIsNone(self.hwinfo.ComputerSystemModel())
 
   def testHDDSerial(self):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(SerialNumber='12345')]
     self.assertEqual(self.hwinfo.HDDSerial(), '12345')
     self.hwinfo.wmi.Query.return_value = None
-    self.assertEqual(self.hwinfo.HDDSerial(), None)
+    self.assertIsNone(self.hwinfo.HDDSerial())
 
   def testIsLaptop(self):
     laptop_types = [8, 9, 10, 11, 14]
@@ -97,7 +103,7 @@ class HwInfoTest(unittest.TestCase):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(Version='ThinkPad T430s')]
     self.assertEqual(self.hwinfo.LenovoSystemModel(), 'ThinkPad T430s')
     self.hwinfo.wmi.Query.return_value = None
-    self.assertEqual(self.hwinfo.LenovoSystemModel(), None)
+    self.assertIsNone(self.hwinfo.LenovoSystemModel())
 
   def testMacAddresses(self):
     self.hwinfo.wmi.Query.return_value = iter([

@@ -84,11 +84,12 @@ class HWInfo(object):
     Returns:
       The Version string if found; else None.
     """
-    query = 'Select Version from Win32_BIOS'
+    query = 'Select SMBIOSBIOSVersion from Win32_BIOS'
     results = self.wmi.Query(query)
     if results:
-      logging.debug('Win32_BIOS/Version: %s', results[0].Version)
-      return results[0].Version
+      logging.debug('Win32_BIOS/SMBIOSBIOSVersion: %s',
+                    results[0].SMBIOSBIOSVersion)
+      return results[0].SMBIOSBIOSVersion
     logging.warning('No results for %s.', query)
     return None
 

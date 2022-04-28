@@ -48,7 +48,7 @@ class HwInfoTest(unittest.TestCase):
     self.assertIsNone(self.hwinfo.BiosSerial())
 
   def testBIOSVersion(self):
-    self.hwinfo.wmi.Query.return_value = [mock.Mock(Version='12345')]
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(SMBIOSBIOSVersion='12345')]
     self.assertEqual(self.hwinfo.BIOSVersion(), '12345')
     self.hwinfo.wmi.Query.return_value = None
     self.assertIsNone(self.hwinfo.BIOSVersion())

@@ -20,12 +20,16 @@ package powershell
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 var (
 	// Dependency injection for testing.
 	powerShellCmd = powerShell
+
+	powerShellExe = filepath.Join(os.Getenv("SystemRoot"), `\System32\WindowsPowerShell\v1.0\powershell.exe`)
 )
 
 // powerShell represents the OS command used to run a powerShell cmdlet on
@@ -34,9 +38,9 @@ var (
 // parameters to invoke powershell.exe from the command line. If an error is
 // returne to the OS, it will be returned here.
 func powerShell(params []string) ([]byte, error) {
-	out, err := exec.Command("powershell.exe", params...).CombinedOutput()
+	out, err := exec.Command(powerShellExe, params...).CombinedOutput()
 	if err != nil {
-		return []byte{}, fmt.Errorf(`exec.Command("powershell.exe", %s) command returned: %q: %v`, params, out, err)
+		return []byte{}, fmt.Errorf(`exec.Command(%q, %s) command returned: %q: %v`, powerShellExe, params, out, err)
 	}
 	return out, nil
 }

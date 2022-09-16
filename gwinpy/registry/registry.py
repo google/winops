@@ -13,6 +13,8 @@
 # limitations under the License.
 """Basic Windows registry handling."""
 
+from typing import List, Optional, Any, Tuple
+
 from six.moves import builtins
 
 if 'WindowsError' in builtins.__dict__:
@@ -37,12 +39,14 @@ class Registry(object):
   def __init__(self, root_key='HKLM'):
     self._WinRegInit()
     if root_key not in self._root_map:
-      raise RegistryError('Failed to open unsupported root key: %s' %
-                          root_key)
+      raise RegistryError('Failed to open unsupported root key: %s' % root_key)
     self._root_key = root_key
     self._root_key_value = self._root_map[root_key]
 
-  def GetKeyValue(self, key_path, key_name, use_64bit=True):
+  def GetKeyValue(self,
+                  key_path: str,
+                  key_name: str,
+                  use_64bit: Optional[bool] = True) -> str:
     r"""function to retrieve a Windows registry value.
 
     Args:
@@ -68,7 +72,9 @@ class Registry(object):
           (self._root_key, key_path, key_name, e),
           errno=e.errno) from e
 
-  def GetRegKeys(self, key_path, use_64bit=True):
+  def GetRegKeys(self,
+                 key_path: str,
+                 use_64bit: Optional[bool] = True) -> List[str]:
     r"""function to enumerate through a subkey and return key names.
 
     Args:
@@ -99,7 +105,10 @@ class Registry(object):
     finally:
       handle.Close()
 
-  def GetRegKeysAndValues(self, key_path, use_64bit=True):
+  def GetRegKeysAndValues(
+      self,
+      key_path: str,
+      use_64bit: Optional[bool] = True) -> List[Tuple[str, Any, int]]:
     r"""function to enumerate through a subkey and return key names and values.
 
     Args:
@@ -132,7 +141,11 @@ class Registry(object):
     finally:
       handle.Close()
 
-  def _OpenSubKey(self, key_path, create=True, write=False, use_64bit=True):
+  def _OpenSubKey(self,
+                  key_path: str,
+                  create: Optional[bool] = True,
+                  write: Optional[bool] = False,
+                  use_64bit: Optional[bool] = True) -> Any:
     """Connect to the local registry key.
 
     Args:
@@ -169,11 +182,11 @@ class Registry(object):
           errno=e.errno) from e
 
   def SetKeyValue(self,
-                  key_path,
-                  key_name,
-                  key_value,
-                  key_type='REG_SZ',
-                  use_64bit=True):
+                  key_path: str,
+                  key_name: str,
+                  key_value: str,
+                  key_type: Optional[str] = 'REG_SZ',
+                  use_64bit: Optional[bool] = True) -> None:
     r"""function to retrieve a Windows registry value.
 
     Args:
@@ -196,17 +209,18 @@ class Registry(object):
           key_path, create=True, write=True, use_64bit=use_64bit)
       self._winreg.SetValueEx(handle, key_name, 0, self._type_map[key_type],
                               key_value)
-      handle.Close()
     except WindowsError as e:
       raise RegistryError(
           r'Failed to read registry value: %s:\%s\%s\%s (%s)' %
           (self._root_key, key_path, key_name, key_value, e),
           errno=e.errno) from e
+    finally:
+      handle.Close()
 
   def RemoveKeyValue(self,
-                     key_path,
-                     key_name,
-                     use_64bit=True):
+                     key_path: str,
+                     key_name: str,
+                     use_64bit: Optional[bool] = True) -> None:
     r"""function to remove a Windows registry value.
 
     Args:
@@ -223,12 +237,13 @@ class Registry(object):
       handle = self._OpenSubKey(
           key_path, create=False, write=True, use_64bit=use_64bit)
       self._winreg.DeleteValue(handle, key_name)
-      handle.Close()
     except WindowsError as e:
       raise RegistryError(
           r'Failed to delete registry key: %s:\%s\%s (%s)' %
           (self._root_key, key_path, key_name, e),
           errno=e.errno) from e
+    finally:
+      handle.Close()
 
   def _WinRegInit(self):
     """Initialize the _winreg module and dependent variables.

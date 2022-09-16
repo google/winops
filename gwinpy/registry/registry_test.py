@@ -18,6 +18,12 @@ import mock
 import six
 from gwinpy.registry import registry
 
+_FAKE_REG_KEY = r'SOFTWARE\Test'
+_WINDOWS_DATA_ERROR = OSError('No more data is available')
+_WINDOWS_DATA_ERROR.winerror = 259
+_WINDOWS_FAKE_ERROR = OSError('Some other error')
+_WINDOWS_FAKE_ERROR.winerror = 1337
+
 
 class RegistryTest(unittest.TestCase):
 
@@ -31,11 +37,11 @@ class RegistryTest(unittest.TestCase):
       self.reg._winreg = self.winreg
 
   def testOpenSubKeyCreate(self):
-    self.reg._OpenSubKey(r'SOFTWARE\Test', create=True)
+    self.reg._OpenSubKey(_FAKE_REG_KEY, create=True)
     self.assertTrue(self.winreg.CreateKeyEx.called)
 
   def testOpenSubKeyOpen(self):
-    self.reg._OpenSubKey(r'SOFTWARE\Test', create=False)
+    self.reg._OpenSubKey(_FAKE_REG_KEY, create=False)
     self.assertTrue(self.winreg.OpenKey.called)
 
   def testOpenSubKeyFail(self):
@@ -45,33 +51,41 @@ class RegistryTest(unittest.TestCase):
     self.assertRaises(
         registry.RegistryError,
         self.reg._OpenSubKey,
-        r'SOFTWARE\Test',
+        _FAKE_REG_KEY,
         create=True)
 
   def testGetKeyValue(self):
     self.winreg.QueryValueEx.return_value = ['1.0']
-    result = self.reg.GetKeyValue(r'SOFTWARE\Test', 'Release')
+    result = self.reg.GetKeyValue(_FAKE_REG_KEY, 'Release')
     self.assertEqual('1.0', result)
 
   def testGetKeyValues(self):
-    windows_error = OSError('No more data is available')
-    windows_error.winerror = 259
-    self.winreg.EnumKey.side_effect = ('Release', windows_error)
-    result = self.reg.GetRegKeys(r'SOFTWARE\Test')
+    self.winreg.EnumKey.side_effect = ('Release', _WINDOWS_DATA_ERROR)
+    result = self.reg.GetRegKeys(_FAKE_REG_KEY)
     self.assertEqual(['Release'], result)
 
   def testGetKeyValuesFail(self):
-    self.winreg.EnumKey.side_effect = registry.RegistryError
-    self.assertRaises(
-        registry.RegistryError,
-        self.reg.GetRegKeys,
-        r'SOFTWARE\Test')
+    self.winreg.EnumKey.side_effect = _WINDOWS_FAKE_ERROR
+    self.assertRaises(registry.RegistryError, self.reg.GetRegKeys,
+                      _FAKE_REG_KEY)
+
+  def testGetKeysAndValues(self):
+    self.winreg.EnumValue.side_effect = (('Release', '1.0',
+                                          self.winreg.REG_DWORD),
+                                         _WINDOWS_DATA_ERROR)
+    result = self.reg.GetRegKeysAndValues(_FAKE_REG_KEY)
+    self.assertEqual([('Release', '1.0', self.winreg.REG_DWORD)], result)
+
+  def testGetKeysAndValuesFail(self):
+    self.winreg.EnumValue.side_effect = _WINDOWS_FAKE_ERROR
+    with self.assertRaises(registry.RegistryError):
+      self.reg.GetRegKeysAndValues(_FAKE_REG_KEY)
 
   def testSetKeyValue(self):
     self.assertRaises(
         registry.RegistryError,
         self.reg.SetKeyValue,
-        r'SOFTWARE\Test',
+        _FAKE_REG_KEY,
         'Release',
         '1.0',
         key_type='REG_FOO')
@@ -80,11 +94,8 @@ class RegistryTest(unittest.TestCase):
     # Variable definition
     registry.RegistryError = Exception
     self.winreg.DeleteValue.side_effect = registry.WindowsError
-    self.assertRaises(
-        registry.RegistryError,
-        self.reg.RemoveKeyValue,
-        r'SOFTWARE\Test',
-        'Release')
+    self.assertRaises(registry.RegistryError, self.reg.RemoveKeyValue,
+                      _FAKE_REG_KEY, 'Release')
 
 
 if __name__ == '__main__':

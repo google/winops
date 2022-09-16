@@ -16,16 +16,14 @@
 from six.moves import builtins
 
 if 'WindowsError' in builtins.__dict__:
-  # pylint: disable=used-before-assignment
-  # pylint: disable=g-bad-name
-  WindowsError = WindowsError  # pylint: disable=undefined-variable
+  WindowsError = WindowsError  # pylint: disable=undefined-variable, disable=self-assigning-variable
 else:
 
   class WindowsError(Exception):
     pass
 
 
-class RegistryError(Exception):
+class RegistryError(Exception):  # pylint: disable=g-bad-exception-name
   """Class defining default/required fields when throwing a RegistryError."""
 
   def __init__(self, message='', errno=0):
@@ -65,9 +63,10 @@ class Registry(object):
       handle.Close()
       return result
     except WindowsError as e:
-      raise RegistryError(r'Failed to get registry value: %s:\%s\%s (%s)' %
-                          (self._root_key, key_path, key_name, e),
-                          errno=e.errno)
+      raise RegistryError(
+          r'Failed to get registry value: %s:\%s\%s (%s)' %
+          (self._root_key, key_path, key_name, e),
+          errno=e.errno) from e
 
   def GetRegKeys(self, key_path, use_64bit=True):
     r"""function to enumerate through a subkey and return key names.
@@ -96,7 +95,40 @@ class Registry(object):
       raise RegistryError(
           r'Failed to open registry key: %s:\%s (%s)' %
           (self._root_key, key_path, e),
-          errno=e.errno)
+          errno=e.errno) from e
+    finally:
+      handle.Close()
+
+  def GetRegKeysAndValues(self, key_path, use_64bit=True):
+    r"""function to enumerate through a subkey and return key names and values.
+
+    Args:
+      key_path: the key we'll search (such as SOFTWARE\Microsoft)
+      use_64bit: use the 64bit registry rather than 32bit
+
+    Returns:
+      A list containing tuples of registry keys:
+        [(data, name, type), (data, name, type), ...]
+
+    Raises:
+      RegistryError: failure opening a handle to the requested key_path
+    """
+    results = []
+    try:
+      handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
+      key = self._winreg.OpenKey(self._root_key_value, key_path, 0,
+                                 self._winreg.KEY_READ)
+      # https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-element-size-limits
+      for subkeys in range(512):
+        results.append(self._winreg.EnumValue(key, subkeys))
+    except OSError as e:
+      # WindowsError: [Errno 259] No more data is available
+      if e.winerror == 259:
+        return results
+      raise RegistryError(
+          r'Failed to open registry key: %s:\%s (%s)' %
+          (self._root_key, key_path, e),
+          errno=e.errno) from e
     finally:
       handle.Close()
 
@@ -134,7 +166,7 @@ class Registry(object):
       raise RegistryError(
           r'Failed to open registry key: %s:\%s (%s)' %
           (self._root_key, key_path, e),
-          errno=e.errno)
+          errno=e.errno) from e
 
   def SetKeyValue(self,
                   key_path,
@@ -166,9 +198,10 @@ class Registry(object):
                               key_value)
       handle.Close()
     except WindowsError as e:
-      raise RegistryError(r'Failed to read registry value: %s:\%s\%s\%s (%s)' %
-                          (self._root_key, key_path, key_name, key_value, e),
-                          errno=e.errno)
+      raise RegistryError(
+          r'Failed to read registry value: %s:\%s\%s\%s (%s)' %
+          (self._root_key, key_path, key_name, key_value, e),
+          errno=e.errno) from e
 
   def RemoveKeyValue(self,
                      key_path,
@@ -195,7 +228,7 @@ class Registry(object):
       raise RegistryError(
           r'Failed to delete registry key: %s:\%s\%s (%s)' %
           (self._root_key, key_path, key_name, e),
-          errno=e.errno)
+          errno=e.errno) from e
 
   def _WinRegInit(self):
     """Initialize the _winreg module and dependent variables.

@@ -118,9 +118,6 @@ func (w *FakeWindowsAPI) ResetEvent() error {
 
 // Close closes the subscription.
 func (w *FakeWindowsAPI) Close() error {
-	if w.query == nil || w.cursors == nil {
-		return errors.New("not open")
-	}
 	w.query = nil
 	w.cursors = nil
 	return nil

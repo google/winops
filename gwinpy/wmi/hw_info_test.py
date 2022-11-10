@@ -99,6 +99,22 @@ class HwInfoTest(unittest.TestCase):
       model.return_value = 'HP Z620 Workstation'
       self.assertFalse(self.hwinfo.IsVirtualMachine())
 
+  def testIsOnBattery(self):
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(BatteryStatus=1)]
+    self.assertTrue(self.hwinfo.IsOnBattery())
+    self.hwinfo.wmi.Query.return_value = [
+        mock.Mock(BatteryStatus=2),
+        mock.Mock(BatteryStatus=2),
+        mock.Mock(BatteryStatus=13)
+    ]
+    self.assertTrue(self.hwinfo.IsOnBattery())
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(BatteryStatus=2)]
+    self.assertFalse(self.hwinfo.IsOnBattery())
+    self.hwinfo.wmi.Query.return_value = []
+    self.assertFalse(self.hwinfo.IsOnBattery())
+    self.hwinfo.wmi.Query.return_value = None
+    self.assertFalse(self.hwinfo.IsOnBattery())
+
   def testLenovoSystemModel(self):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(Version='ThinkPad T430s')]
     self.assertEqual(self.hwinfo.LenovoSystemModel(), 'ThinkPad T430s')

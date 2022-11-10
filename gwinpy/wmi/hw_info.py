@@ -186,6 +186,25 @@ class HWInfo(object):
     logging.debug('No virtual hardware detected.')
     return False
 
+  def IsOnBattery(self):
+    """Detect whether the local machine appears to be on battery.
+
+    Returns:
+      true if on battery; else false
+    """
+    query = 'SELECT BatteryStatus FROM Win32_Battery'
+    unplugged_statuses = [1, 13, 14, 15, 16, 17]  # on battery or battery saver
+    results = self.wmi.Query(query)
+    if results:
+      for result in results:
+        logging.debug('Found Win32_Battery with BatteryStatus: %s',
+                      result.BatteryStatus)
+        if result.BatteryStatus in unplugged_statuses:
+          return True
+    else:
+      logging.debug('No Win32_Battery detected.')
+    return False
+
   def LenovoSystemModel(self):
     """Get the Lenovo-specific common model name (instead of the model number).
 

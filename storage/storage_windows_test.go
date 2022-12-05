@@ -100,10 +100,10 @@ func TestDetectPartitions(t *testing.T) {
 			return &fakeService{}, tt.errCon
 		}
 		fnGetPartitions = func(path string, vp iService) (glstor.PartitionSet, error) {
-			return glstor.PartitionSet{tt.parts}, tt.errGetParts
+			return glstor.PartitionSet{Partitions: tt.parts}, tt.errGetParts
 		}
 		fnGetVolumes = func(path string, vp iService) (glstor.VolumeSet, error) {
-			return glstor.VolumeSet{[]glstor.Volume{glstor.Volume{}}}, tt.errGetVols
+			return glstor.VolumeSet{Volumes: []glstor.Volume{glstor.Volume{}}}, tt.errGetVols
 		}
 		err := tt.device.DetectPartitions(false)
 		if !errors.Is(err, tt.wantErr) {
@@ -255,7 +255,7 @@ func TestWipe(t *testing.T) {
 			return &fakeService{}, tt.errCon
 		}
 		fnGetDisks = func(query string, vp iService) (glstor.DiskSet, error) {
-			return glstor.DiskSet{[]glstor.Disk{glstor.Disk{}}}, tt.errGet
+			return glstor.DiskSet{Disks: []glstor.Disk{glstor.Disk{}}}, tt.errGet
 		}
 		fnWipe = func(disk iDisk) error {
 			return tt.errWipe
@@ -354,7 +354,7 @@ func TestFormat(t *testing.T) {
 			return &fakeService{}, tt.errCon
 		}
 		fnGetVolumes = func(path string, vp iService) (glstor.VolumeSet, error) {
-			return glstor.VolumeSet{[]glstor.Volume{glstor.Volume{}}}, tt.errGet
+			return glstor.VolumeSet{Volumes: []glstor.Volume{glstor.Volume{}}}, tt.errGet
 		}
 		fnFormat = func(fs FileSystem, label string, vol iVolume) error {
 			return tt.errFmt

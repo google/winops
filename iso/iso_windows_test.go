@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
 // +build windows
 
 package iso
@@ -20,6 +21,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"testing"
+
+	"github.com/otiai10/copy"
 )
 
 func TestMount(t *testing.T) {
@@ -114,42 +117,35 @@ func TestMount(t *testing.T) {
 func TestCopy(t *testing.T) {
 	tests := []struct {
 		desc        string
-		fakeCopyCmd func(string, string) ([]byte, error)
+		fakeCopyCmd func(string, string, ...copy.Options) error
 		handler     *Handler
 		dest        string
 		err         error
 	}{
 		{
 			desc:        "empty source",
-			fakeCopyCmd: func(string, string) ([]byte, error) { return nil, nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: ""},
 			dest:        "fakeDst",
 			err:         errNotMounted,
 		},
 		{
 			desc:        "empty destination",
-			fakeCopyCmd: func(string, string) ([]byte, error) { return nil, nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: "fakeSrc"},
 			dest:        "",
 			err:         errInput,
 		},
 		{
 			desc:        "copyCmd error",
-			fakeCopyCmd: func(string, string) ([]byte, error) { return nil, errors.New("error") },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return errors.New("error") },
 			handler:     &Handler{mount: "error"},
 			dest:        "fakeDst",
 			err:         errCopy,
 		},
 		{
-			desc:        "Copy-Item error",
-			fakeCopyCmd: func(string, string) ([]byte, error) { return []byte("Copy-Item failure"), nil },
-			handler:     &Handler{mount: "fakeSrc"},
-			dest:        "fakeDst",
-			err:         errPSGeneral,
-		},
-		{
 			desc:        "successful copy",
-			fakeCopyCmd: func(string, string) ([]byte, error) { return nil, nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: "fakeSrc"},
 			dest:        "fakeDst",
 			err:         nil,

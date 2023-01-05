@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
 // +build linux
 
 package iso
@@ -22,6 +23,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/otiai10/copy"
 )
 
 func TestMount(t *testing.T) {
@@ -88,35 +91,35 @@ func TestMount(t *testing.T) {
 func TestCopy(t *testing.T) {
 	tests := []struct {
 		desc        string
-		fakeCopyCmd func(string, string) error
+		fakeCopyCmd func(string, string, ...copy.Options) error
 		handler     *Handler
 		dest        string
 		err         error
 	}{
 		{
 			desc:        "empty source",
-			fakeCopyCmd: func(string, string) error { return nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: ""},
 			dest:        "fakeDst",
 			err:         errNotMounted,
 		},
 		{
 			desc:        "empty destination",
-			fakeCopyCmd: func(string, string) error { return nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: "fakeSrc"},
 			dest:        "",
 			err:         errInput,
 		},
 		{
 			desc:        "error from copyCmd",
-			fakeCopyCmd: func(string, string) error { return errors.New("error") },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return errors.New("error") },
 			handler:     &Handler{mount: "error"},
 			dest:        "fakeDst",
 			err:         errCopy,
 		},
 		{
 			desc:        "successful copy",
-			fakeCopyCmd: func(string, string) error { return nil },
+			fakeCopyCmd: func(string, string, ...copy.Options) error { return nil },
 			handler:     &Handler{mount: "fakeSrc"},
 			dest:        "fakeDst",
 			err:         nil,

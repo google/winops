@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
 // +build windows
 
 package iso
@@ -34,7 +35,6 @@ var (
 	regExFileNotFound  = regexp.MustCompile(`Mount-DiskImage[\s\S]+cannot find the file`)
 	regExPSMountErr    = regexp.MustCompile(`Mount-DiskImage[\s\S]+`)
 	regExDriveSpec     = regexp.MustCompile(`^[A-Za-z]:+`)
-	regExPSCopyErr     = regexp.MustCompile(`Copy-Item[\s\S]+`)
 	regExPSDismountErr = regexp.MustCompile(`Dismount-DiskImage[\s\S]+`)
 )
 
@@ -92,20 +92,6 @@ func mount(isoFile string) (*Handler, error) {
 	}, nil
 }
 
-// cpyCmd represents the OS command used to copy files on
-// Windows. The raw output is only required for error handling.
-// Similar to mount, error is not an indicator of cmdlet
-// success or failure, therefore output should be checked
-// for error strings by the caller.
-func cpyCmd(src, dst string) ([]byte, error) {
-	psBlock := fmt.Sprintf(`& { Copy-Item -Path %s\* -Destination %s -Recurse }`, src, dst)
-	out, err := exec.Command("powershell.exe", "-NoProfile", "-Command", psBlock).CombinedOutput()
-	if err != nil {
-		return []byte{}, fmt.Errorf(`exec.Command("powershell.exe", "-NoProfile", "-Command", %s) returned: %q: %v`, psBlock, out, err)
-	}
-	return out, nil
-}
-
 // Copy Recursively copies the contents of a mounted ISO to
 // a destination folder. Additional handling for the output
 // is present on Windows to handle powershell cmdlet errors.
@@ -121,12 +107,8 @@ func (iso *Handler) Copy(dst string) error {
 	if !strings.Contains(dst, ":") {
 		dst = dst + ":"
 	}
-	out, err := copyCmd(iso.mount, dst)
-	if err != nil {
+	if err := copyCmd(iso.mount, dst); err != nil {
 		return fmt.Errorf("%v: %w", err, errCopy)
-	}
-	if regExPSCopyErr.Match(out) {
-		return fmt.Errorf("%v powershell returned %q: %w", errCopy, out, errPSGeneral)
 	}
 	return nil
 }

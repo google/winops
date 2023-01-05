@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	cp "github.com/otiai10/copy"
 )
 
 var (
@@ -34,7 +36,7 @@ var (
 
 	// Dependency injections.
 	mountCmd    = mntCmd
-	copyCmd     = cpyCmd
+	copyCmd     = cp.Copy
 	dismountCmd = dmCmd
 )
 

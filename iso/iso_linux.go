@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
 // +build linux
 
 package iso
@@ -61,17 +62,6 @@ func mount(isoFile string) (*Handler, error) {
 		size:     uint64(file.Size()),
 		contents: contents,
 	}, nil
-}
-
-// cpyCmd represents the OS command used to copy files on
-// linux. The raw output is only required for error handling.
-// If the copy command exits with an error, it is returned.
-func cpyCmd(src, dst string) error {
-	args := "cp -Rf " + src + "/* " + dst
-	if out, err := exec.Command("sudo", "/bin/sh", "-c", args).CombinedOutput(); err != nil {
-		return fmt.Errorf(`exec.Command("sudo", "/bin/sh", "-c", %q) returned %q: %v`, args, out, err)
-	}
-	return nil
 }
 
 // Copy recursively copies the contents of a mounted ISO to a destination

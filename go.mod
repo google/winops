@@ -10,9 +10,16 @@ require (
         github.com/google/go-cmp v0.5.6
         github.com/google/logger v1.1.1
         github.com/groob/plist v0.0.0-20210519001750-9f754062e6d6
+        github.com/otiai10/copy v1.9.0
         github.com/pkg/errors v0.9.1
-        golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+        golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
         golang.org/x/time v0.2.0
+)
+
+require (
+        github.com/go-ole/go-ole v1.2.5 // indirect
+        github.com/scjalliance/comshim v0.0.0-20190308082608-cf06d2532c4e // indirect
+        golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 
 require (

@@ -26,7 +26,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/logger"
+	"github.com/google/deck"
 	glstor "github.com/google/glazier/go/storage"
 )
 
@@ -169,7 +169,7 @@ func (device *Device) DetectPartitions(assignLetter bool) error {
 	partitions := []Partition{}
 	for _, part := range parts.Partitions {
 		if len(part.AccessPaths) < 1 {
-			logger.Warningf("no access path for partition %v", part)
+			deck.Warningf("no access path for partition %v", part)
 			continue
 		}
 		path := ""
@@ -206,14 +206,14 @@ func (device *Device) DetectPartitions(assignLetter bool) error {
 		// are logged.
 		if len(parts.Partitions) == 1 && assignLetter {
 			if err := p.Mount(""); err != nil {
-				logger.V(2).Infoln(err)
+				deck.InfolnA(err).With(deck.V(2)).Go()
 			}
 		}
 
 		// Add label information for volumes that are mounted. An inability to read
 		// a label is not fatal but is logged.
 		if err := p.addLabel(); err != nil {
-			logger.V(2).Infoln(err)
+			deck.InfolnA(err).With(deck.V(2)).Go()
 		}
 
 		// Append the complete partition.
@@ -289,7 +289,7 @@ func (device *Device) PartitionWithOptions(label string, gType glstor.GptType, s
 			useMax = false
 		} else {
 			size = 0 // let windows api use maximum available size
-			logger.V(1).Infof("shrinking partition size to fit on disk")
+			deck.InfofA("shrinking partition size to fit on disk").With(deck.V(1)).Go()
 		}
 	}
 

@@ -103,12 +103,20 @@ func (iso *Handler) Copy(dst string) error {
 		return fmt.Errorf("destination was empty: %w", errInput)
 	}
 	// If the path doesn't contain a colon, we may have a naked drive letter
-	// which is a problem for Copy-Item.
+	// which is a problem for Copy.
 	if !strings.Contains(dst, ":") {
-		dst = dst + ":"
+		dst = dst + `:\`
 	}
-	if err := copyCmd(iso.mount, dst); err != nil {
-		return fmt.Errorf("%v: %w", err, errCopy)
+	mount := iso.mount
+	if !strings.Contains(mount, ":") {
+		mount = mount + `:\`
+	}
+	if err := copyCmd(mount, dst); err != nil {
+		// the copy package fails when trying to chmod the root directory
+		// TODO: leverage https://github.com/otiai10/copy/pull/69 once it becomes available
+		if !strings.Contains(err.Error(), "chmod") {
+			return fmt.Errorf("%w: %v", errCopy, err)
+		}
 	}
 	return nil
 }

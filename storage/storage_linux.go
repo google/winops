@@ -32,14 +32,16 @@ import (
 
 var (
 	// Wrapped errors for testing.
-	errLsblk    = errors.New(`lsblk error`)
-	errPartRead = errors.New(`partition reading error`)
-	errFile     = errors.New(`file error`)
-	errSudo     = errors.New(`sudo error`)
+	errLsblk     = errors.New(`lsblk error`)
+	errPartprobe = errors.New(`partprobe error`)
+	errPartRead  = errors.New(`partition reading error`)
+	errFile      = errors.New(`file error`)
+	errSudo      = errors.New(`sudo error`)
 
 	// Dependency injection for testing.
 	lsblkDiskCmd = lsblk
 	lsblkPartCmd = lsblk
+	partprobeCmd = partprobe
 	sudoCmd      = sudo
 )
 
@@ -67,6 +69,16 @@ func lsblk(args ...string) ([]byte, error) {
 		return []byte{}, fmt.Errorf(`exec.Command("lsblk", %q) returned %q: %v`, args, out, err)
 	}
 	return out, nil
+}
+
+// partprobe represents the OS command used to rescan devices and update the OS's knowledge of
+// partition tables. An arbitrary set of arguments is accepted.
+func partprobe(args ...string) error {
+	out, err := exec.Command("partprobe", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf(`exec.Command("partprobe", %q) returned %q: %v`, args, out, err)
+	}
+	return nil
 }
 
 // Search performs a device search based on the provided parameters and returns
@@ -144,6 +156,18 @@ func New(deviceID string) (*Device, error) {
 	return devices[0], nil
 }
 
+// ProbeDevicePartitions forces the operating system to reexamine the partition table information on Linux.
+func (device *Device) ProbeDevicePartitions() error {
+	if device.id == "" {
+		return fmt.Errorf("device ID was empty: %w", errInput)
+	}
+
+	if err := partprobeCmd("/dev/" + device.id); err != nil {
+		return fmt.Errorf("partprobe returned %w: %v", errPartprobe, err)
+	}
+	return nil
+}
+
 // DetectPartitions updates a device with known partition information on Linux.
 func (device *Device) DetectPartitions(mount bool) error {
 	if device.id == "" {
@@ -153,7 +177,7 @@ func (device *Device) DetectPartitions(mount bool) error {
 	// Pull block information for the device.
 	out, err := lsblkPartCmd("-o", "kname,label,fstype,pttype,type,size,hotplug,mountpoint,vendor,model", "-b", "-J", "/dev/"+device.id)
 	if err != nil {
-		return fmt.Errorf("lablk returned %v: %w", err, errLsblk)
+		return fmt.Errorf("lsblk returned %v: %w", err, errLsblk)
 	}
 	// result models the JSON formatted results from lsblk.
 	result := &struct {

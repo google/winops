@@ -146,6 +146,11 @@ func New(deviceID string) (*Device, error) {
 	return devices[0], nil
 }
 
+// ProbeDevicePartitions forces the operating system to reexamine the partition table information on Windows.
+func (device *Device) ProbeDevicePartitions() error {
+	return nil
+}
+
 // DetectPartitions updates a device with information for known partitions on
 // Windows.
 func (device *Device) DetectPartitions(assignLetter bool) error {

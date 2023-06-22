@@ -706,3 +706,39 @@ func TestFormat(t *testing.T) {
 		}
 	}
 }
+
+func TestProbeDevice(t *testing.T) {
+	tests := []struct {
+		desc             string
+		fakePartProbeCmd func(args ...string) error
+		device           *Device
+		err              error
+	}{
+		{
+			desc:             "success",
+			fakePartProbeCmd: func(args ...string) error { return nil },
+			device:           &Device{id: "sda"},
+			err:              nil,
+		},
+		{
+			desc:             "no device id",
+			fakePartProbeCmd: func(args ...string) error { return nil },
+			device:           &Device{},
+			err:              errInput,
+		},
+		{
+			desc:             "partprobe error",
+			fakePartProbeCmd: func(args ...string) error { return errPartprobe },
+			device:           &Device{id: "sda"},
+			err:              errPartprobe,
+		},
+	}
+	oldpartprobecmd := partprobeCmd
+	for _, tt := range tests {
+		partprobeCmd = tt.fakePartProbeCmd
+		if err := tt.device.ProbeDevicePartitions(); !errors.Is(err, tt.err) {
+			t.Errorf("%s: err = %v, want: %v", tt.desc, err, tt.err)
+		}
+	}
+	partprobeCmd = oldpartprobecmd
+}

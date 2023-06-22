@@ -174,6 +174,11 @@ func New(deviceID string) (*Device, error) {
 	return device, nil
 }
 
+// ProbeDevicePartitions forces the operating system to reexamine the partition table information on Darwin.
+func (device *Device) ProbeDevicePartitions() error {
+	return nil
+}
+
 // DetectPartitions updates a device with known partition information on Darwin.
 func (device *Device) DetectPartitions(mount bool) error {
 	if device.id == "" {

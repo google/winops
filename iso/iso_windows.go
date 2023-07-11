@@ -24,6 +24,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	cp "github.com/otiai10/copy"
 )
 
 var (
@@ -111,12 +113,12 @@ func (iso *Handler) Copy(dst string) error {
 	if !strings.Contains(mount, ":") {
 		mount = mount + `:\`
 	}
-	if err := copyCmd(mount, dst); err != nil {
-		// the copy package fails when trying to chmod the root directory
-		// TODO: leverage https://github.com/otiai10/copy/pull/69 once it becomes available
-		if !strings.Contains(err.Error(), "chmod") {
-			return fmt.Errorf("%w: %v", errCopy, err)
-		}
+	opt := cp.Options{
+		Sync:              true,
+		PermissionControl: cp.DoNothing,
+	}
+	if err := copyCmd(mount, dst, opt); err != nil {
+		return fmt.Errorf("%w: %v", errCopy, err)
 	}
 	return nil
 }

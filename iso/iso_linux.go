@@ -22,7 +22,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
+
+	cp "github.com/otiai10/copy"
 )
 
 // mntCmd represents the OS command used to mount an ISO on
@@ -74,12 +75,12 @@ func (iso *Handler) Copy(dst string) error {
 	if dst == "" {
 		return fmt.Errorf("destination was empty: %w", errInput)
 	}
-	if err := copyCmd(iso.mount, dst); err != nil {
-		// the copy package fails when trying to chmod the root directory
-		// TODO: leverage https://github.com/otiai10/copy/pull/69 once it becomes available
-		if !strings.Contains(err.Error(), "chmod") {
-			return fmt.Errorf("%v: %w", err, errCopy)
-		}
+	opt := cp.Options{
+		Sync:              true,
+		PermissionControl: cp.DoNothing,
+	}
+	if err := copyCmd(iso.mount, dst, opt); err != nil {
+		return fmt.Errorf("%w: %v", errCopy, err)
 	}
 	return nil
 }

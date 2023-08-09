@@ -199,11 +199,8 @@ func RenderFragment(fragment windows.Handle, flag uint32) (string, error) {
 // This is like `syscall.UTF16ToString`, but it supports strings that contain null characters.
 // Any trailing null characters are removed though.
 // So {'f', 0x00, 'o', 0x00, 0x00} would return "f\x00o".
-func utf16ToString(buf []uint16, size int) string {
-  if size > len(buf) {
-    size = len(buf)
-  }
-  decoded := string(utf16.Decode(buf[0:size]))
+func utf16ToString(buf []uint16) string {
+	decoded := string(utf16.Decode(buf))
 	// Remove any trailing null characters.
 	return strings.TrimRight(decoded, "\x00")
 }
@@ -275,11 +272,15 @@ func RenderFormattedMessageXML(event windows.Handle, renderedEvent string, local
 		return "", fmt.Errorf("wevtapi.EvtFormatMessage failed to render events as formatted XML: %v", err)
 	}
 
+	if int(bufferUsed) < len(buf) {
+		buf = buf[:bufferUsed]
+	}
+
 	// On Windows 11, we have observed `buf` to contain null characters.
 	// Using `syscall.UTF16ToString` will cut off the null character and everything that follows.
 	// So we use `utf16ToString` instead, which will preserve the null characters.
 
-	return utf16ToString(buf, int(bufferUsed)), nil
+	return utf16ToString(buf), nil
 }
 
 // Subscribe initializes a subscription and returns a handle to the subscription.

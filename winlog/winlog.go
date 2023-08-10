@@ -200,10 +200,10 @@ func RenderFragment(fragment windows.Handle, flag uint32) (string, error) {
 // Any trailing null characters are removed though.
 // So {'f', 0x00, 'o', 0x00, 0x00} would return "f\x00o".
 func utf16ToString(buf []uint16, size int) string {
-  if size > len(buf) {
-    size = len(buf)
-  }
-  decoded := string(utf16.Decode(buf[0:size]))
+	if size > len(buf) {
+		size = len(buf)
+	}
+	decoded := string(utf16.Decode(buf[0:size]))
 	// Remove any trailing null characters.
 	return strings.TrimRight(decoded, "\x00")
 }

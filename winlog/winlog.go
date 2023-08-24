@@ -27,7 +27,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	"github.com/golang/glog"
+	glog "github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"golang.org/x/time/rate"
 	"github.com/google/winops/winlog/wevtapi"

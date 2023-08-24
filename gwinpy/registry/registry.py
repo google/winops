@@ -214,6 +214,12 @@ class Registry(object):
           r'Failed to read registry value: %s:\%s\%s\%s (%s)' %
           (self._root_key, key_path, key_name, key_value, e),
           errno=e.errno) from e
+    except ValueError as e:
+      raise RegistryError(
+          r'Invalid input while setting registry value: %s:\%s\%s\%s (%s)'
+          % (self._root_key, key_path, key_name, key_value, e),
+          errno=e.errno,
+      ) from e
     finally:
       handle.Close()
 

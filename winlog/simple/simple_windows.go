@@ -23,7 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
+	glog "github.com/golang/glog"
 	"golang.org/x/sys/windows"
 	"github.com/google/winops/winlog/wevtapi"
 	"github.com/google/winops/winlog"

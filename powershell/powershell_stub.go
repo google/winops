@@ -27,6 +27,11 @@ func Command(psCmd string, supplemental []string, config *PSConfig) ([]byte, err
 	return nil, ErrUnsupported
 }
 
+// File executes a PowerShell script file
+func File(path string, args []string, supplemental []string, config *PSConfig) ([]byte, error) {
+	return nil, ErrUnsupported
+}
+
 // Version gathers powershell version information from the host, returns an error if version information cannot be obtained.
 //
 // This call is unsupported on non-Windows platforms.

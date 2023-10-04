@@ -12,16 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
 // +build windows
 
 package powershell
 
 import (
 	"errors"
+	"path/filepath"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
+var (
+	testData = "testdata/"
+)
+
+func init() {
+	Command("Set-ExecutionPolicy Bypass", nil, nil)
+}
+
 func TestCommand(t *testing.T) {
+	defer func() {
+		powerShellCmd = powerShell
+	}()
 	tests := []struct {
 		desc              string
 		psCmd             string
@@ -54,6 +69,48 @@ func TestCommand(t *testing.T) {
 		powerShellCmd = tt.fakePowerShellCmd
 		if _, err := Command(tt.psCmd, tt.supplemental, nil); !errors.Is(err, tt.err) {
 			t.Errorf("%s: Command(%q, %v, nil) = %v, want: %v", tt.desc, tt.psCmd, tt.supplemental, err, tt.err)
+		}
+	}
+}
+
+func TestFile(t *testing.T) {
+	tests := []struct {
+		desc         string
+		psFile       string
+		psArgs       []string
+		supplemental []string
+		wantOut      []byte
+		err          error
+	}{
+		{
+			desc:    "execute ok; no output",
+			psFile:  filepath.Join(testData + "hello.ps1"),
+			err:     nil,
+			wantOut: []byte{},
+		},
+		{
+			desc:    "execute ok; with output",
+			psFile:  filepath.Join(testData + "hello.ps1"),
+			psArgs:  []string{"-Verbose"},
+			err:     nil,
+			wantOut: []byte("VERBOSE: hello world\n"),
+		},
+		{
+			desc:    "input file missing",
+			psFile:  filepath.Join(testData + "missing.ps1"),
+			err:     ErrPowerShell,
+			wantOut: []byte{},
+		},
+	}
+
+	for _, tt := range tests {
+		out, err := File(tt.psFile, tt.psArgs, tt.supplemental, nil)
+		if !errors.Is(err, tt.err) {
+			t.Errorf("%s: File(%q, %v, %v, nil) produced unexpected error %v, want: %v", tt.desc, tt.psFile, tt.psArgs, tt.supplemental, err, tt.err)
+			continue
+		}
+		if diff := cmp.Diff(out, tt.wantOut); diff != "" {
+			t.Errorf("%s: File(%q, %v, %v, nil) = %s, want: %s", tt.desc, tt.psFile, tt.psArgs, tt.supplemental, out, tt.wantOut)
 		}
 	}
 }

@@ -36,12 +36,28 @@ var (
 // Windows. The raw output is provided to the caller for error handling.
 // The params parameter should be populated with all of the required
 // parameters to invoke powershell.exe from the command line. If an error is
-// returne to the OS, it will be returned here.
+// returned to the OS, it will be returned here.
 func powerShell(params []string) ([]byte, error) {
 	out, err := exec.Command(powerShellExe, params...).CombinedOutput()
 	if err != nil {
 		return []byte{}, fmt.Errorf(`exec.Command(%q, %s) command returned: %q: %v`, powerShellExe, params, out, err)
 	}
+	return out, nil
+}
+
+func execute(params []string, supplemental []string) ([]byte, error) {
+	// Invoke PowerShell
+	out, err := powerShellCmd(params)
+	if err != nil {
+		return out, fmt.Errorf("powershell returned %v: %w", err, ErrPowerShell)
+	}
+
+	// Determine if the output contains a supplemental error.
+	if err := supplementalErr(out, supplemental); err != nil {
+		return out, fmt.Errorf("supplementalErr returned %v: %w", err, ErrSupplemental)
+	}
+
+	// Return successful output.
 	return out, nil
 }
 
@@ -63,19 +79,21 @@ func Command(psCmd string, supplemental []string, config *PSConfig) ([]byte, err
 	cmd := fmt.Sprintf(`$ErrorActionPreference="%s"; %s`, config.ErrAction, psCmd)
 	params := append(config.Params, "-Command", cmd)
 
-	// Invoke PowerShell
-	out, err := powerShellCmd(params)
-	if err != nil {
-		return out, fmt.Errorf("powershell returned %v: %w", err, ErrPowerShell)
-	}
+	return execute(params, supplemental)
+}
 
-	// Determine if the output contains a supplemental error.
-	if err := supplementalErr(out, supplemental); err != nil {
-		return out, fmt.Errorf("supplementalErr returned %v: %w", err, ErrSupplemental)
-	}
+// File executes a PowerShell script file.
+func File(path string, args []string, supplemental []string, config *PSConfig) ([]byte, error) {
+	// Apply the default PSConfig if none was specified.
+	if config == nil {
+		c := defaultConfig
+		config = &c
 
-	// Return successful output.
-	return out, nil
+	}
+	params := append(config.Params, "-File", path)
+	params = append(params, args...)
+
+	return execute(params, supplemental)
 }
 
 // Version gathers powershell version information from the host, returns an error if version information cannot be obtained.

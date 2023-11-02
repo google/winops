@@ -93,8 +93,9 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subE
 		if err != nil {
 			return fmt.Errorf("Build structured XML query error: %w", err)
 		}
-		glog.V(1).Infof("Built the structured XML Query: %s", xmlQuery)
-		cfg.Query, err = syscall.UTF16PtrFromString(string(xmlQuery))
+		xmlQueryStr := fixEscapeCodes(string(xmlQuery))
+		glog.V(1).Infof("Built the structured XML Query: %s", xmlQueryStr)
+		cfg.Query, err = syscall.UTF16PtrFromString(xmlQueryStr)
 		if err != nil {
 			return fmt.Errorf("syscall.UTF16PtrFromString failed: %w", err)
 		}
@@ -105,6 +106,17 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subE
 	e.subscription, err = winlog.Subscribe(e.config)
 	e.publisherCache = make(map[string]windows.Handle)
 	return err
+}
+
+// fixEscapeCodes replaces escape codes that are not properly parsed by WinLog
+//
+// WinLog does not correctly parse the escape codes &#34; and &#39;
+// so we replace those with &quot; and &apos; respectively since they're
+// identical but work with WinLog.
+func fixEscapeCodes(xmlStr string) string {
+	xmlStr = strings.ReplaceAll(xmlStr, "&#34;", "&quot;")
+	xmlStr = strings.ReplaceAll(xmlStr, "&#39;", "&apos;")
+	return xmlStr
 }
 
 // makeBookmark calls EvtCreateBookmark with the given bookmark string

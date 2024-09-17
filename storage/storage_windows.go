@@ -569,7 +569,7 @@ func windowsGetVolumes(path string, svc iService) (glstor.VolumeSet, error) {
 }
 
 func windowsInitialize(disk iDisk) error {
-	_, err := disk.ConvertStyle(glstor.GptStyle)
+	_, err := disk.Initialize(glstor.GptStyle)
 	return err
 }
 

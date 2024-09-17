@@ -518,16 +518,16 @@ func TestWindowsFormat(t *testing.T) {
 }
 
 func TestWindowsInitialize(t *testing.T) {
-	errConv := errors.New("ConvertStyle error")
+	errInit := errors.New("Initialize error")
 	tests := []struct {
 		desc    string
-		errConv error
+		errInit error
 		want    error
 	}{
 		{
-			desc:    "ConvertStyle error",
-			errConv: errConv,
-			want:    errConv,
+			desc:    "Initialize error",
+			errInit: errInit,
+			want:    errInit,
 		},
 		{
 			desc: "success",
@@ -535,7 +535,7 @@ func TestWindowsInitialize(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := windowsInitialize(&FakeDisk{errConv: tt.errConv})
+		err := windowsInitialize(&FakeDisk{errInitialize: tt.errInit})
 		if !errors.Is(err, tt.want) {
 			t.Errorf("%s: windowsInitialize() err = %v, want: %v", tt.desc, err, tt.want)
 		}

@@ -588,8 +588,29 @@ func windowsPartition(disk iDisk, size uint64, max bool, gptType glstor.GptType)
 }
 
 func windowsWipe(disk iDisk) error {
-	_, err := disk.Clear(true, true, false)
-	return err
+	if _, err := disk.Clear(true, true, false); err != nil {
+		// Error code reference: https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/clear-msft-disk#return-value
+		// If a disk isn't initialized, we can't wipe it, so try and initialize it before attempting
+		// to wipe again.
+		if strings.Contains(err.Error(), "41000") {
+			if err := windowsInitializeandWipe(disk); err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func windowsInitializeandWipe(disk iDisk) error {
+	if _, err := disk.Initialize(glstor.GptStyle); err != nil {
+		return fmt.Errorf("failed to initialize disk before wipe: %w", err)
+	}
+	if _, err := disk.Clear(true, true, false); err != nil {
+		return err
+	}
+	return nil
 }
 
 // powershell represents the OS command used to run a powershell cmdlet on

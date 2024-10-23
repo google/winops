@@ -310,6 +310,11 @@ func (device *Device) PartitionWithOptions(label string, gType glstor.GptType, s
 	}
 	defer disks.Close()
 
+	if disks.Disks[0].PartitionStyle != int32(glstor.GptStyle) {
+		if _, err := disks.Disks[0].ConvertStyle(glstor.GptStyle); err != nil {
+			return fmt.Errorf("ConvertStyle() returned %v: %w", err, errDisk)
+		}
+	}
 	if err := fnPartition(&disks.Disks[0], size, useMax, gType); err != nil {
 		return fmt.Errorf("%w: %v", err, errPartition)
 	}

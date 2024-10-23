@@ -214,7 +214,7 @@ func (device *Device) SelectPartition(minSize uint64, fs FileSystem) (*Partition
 			return &part, nil
 		}
 	}
-	// The requested filesystem was not found among the avaialble partitions.
+	// The requested filesystem was not found among the available partitions.
 	return nil, fmt.Errorf("no available partitions of type %q were found: %w", fs, errNoMatch)
 }
 

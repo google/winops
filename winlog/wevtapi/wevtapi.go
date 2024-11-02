@@ -103,6 +103,22 @@ const (
 	EvtSubscribeActionDeliver = 1
 )
 
+type EvtLogPropertyID uint32
+
+// Windows Event Log Property Enumerations
+// https://msdn.microsoft.com/en-us/library/windows/desktop/aa385783(v=vs.85).aspx
+const (
+	// EVT_LOG_PROPERTY_ID
+	EvtLogCreationTime EvtLogPropertyID = iota
+	EvtLogLastAccessTime
+	EvtLogLastWriteTime
+	EvtLogFileSize
+	EvtLogAttributes
+	EvtLogNumberOfLogRecords
+	EvtLogOldestRecordNumber
+	EvtLogFull
+)
+
 // Windows Event Log Constants
 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa385781(v=vs.85).aspx
 const (
@@ -172,6 +188,7 @@ const (
 //sys   EvtExportLog(session windows.Handle, path *uint16, query *uint16, targetFilePath *uint16, flags uint32) (err error) = wevtapi.EvtExportLog
 //sys   EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageID uint32, valueCount uint32, variant uintptr, flags uint32, bufferSize uint32, buffer *byte, bufferUsed *uint32) (err error) = wevtapi.EvtFormatMessage
 //sys   EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetChannelConfigProperty
+//sys   EvtGetLogInfo(log windows.Handle, propertyID EvtLogPropertyID, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) = wevtapi.EvtGetLogInfo
 //sys   EvtNext(resultSet windows.Handle, eventArraySize uint32, eventArray *windows.Handle, timeout uint32, flags uint32, returned *uint32) (err error) = wevtapi.EvtNext
 //sys   EvtNextChannelPath(channelEnum windows.Handle, channelPathBufferSize uint32, channelPathBuffer *uint16, channelPathBufferUsed *uint32) (err error) = wevtapi.EvtNextChannelPath
 //sys   EvtNextPublisherId(publisherEnum windows.Handle, publisherIDBufferSize uint32, publisherIDBuffer *uint16, publisherIDBufferUsed *uint32) (err error) = wevtapi.EvtNextPublisherId

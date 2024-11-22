@@ -47,6 +47,14 @@ class HwInfoTest(unittest.TestCase):
     self.hwinfo.wmi.Query.return_value = None
     self.assertIsNone(self.hwinfo.BiosSerial())
 
+  def testArchType(self):
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(Architecture='0')]
+    self.assertEqual(self.hwinfo.Architecture(), 'x86')
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(Architecture='12')]
+    self.assertEqual(self.hwinfo.Architecture(), 'ARM64')
+    self.hwinfo.wmi.Query.return_value = [mock.Mock(Architecture='1337')]
+    self.assertIsNone(self.hwinfo.Architecture())
+
   def testBIOSVersion(self):
     self.hwinfo.wmi.Query.return_value = [mock.Mock(SMBIOSBIOSVersion='12345')]
     self.assertEqual(self.hwinfo.BIOSVersion(), '12345')

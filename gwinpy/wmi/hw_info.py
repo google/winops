@@ -241,6 +241,41 @@ class HWInfo(object):
       addresses.append(address)
     return addresses
 
+  def Architecture(self):
+    """Get the architecture of the local machine.
+
+    Returns:
+      The architecture string if found; else None.
+    """
+    # https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-processor
+    architecture_map = {
+        0: 'x86',
+        1: 'MIPS',
+        2: 'Alpha',
+        3: 'PowerPC',
+        5: 'ARM',
+        6: 'ia64',
+        9: 'x64',
+        12: 'ARM64',
+    }
+    query = 'SELECT Architecture FROM Win32_Processor'
+    results = self.wmi.Query(query)
+    if results:
+      logging.debug(
+          'Win32_ComputerSystem/win32-processor: %s',
+          results[0].Architecture.rstrip(),
+      )
+      try:
+        archtype = architecture_map[int(results[0].Architecture.rstrip())]
+      except KeyError:
+        logging.warning(
+            'Unknown architecture %s.', results[0].Architecture.rstrip()
+        )
+        return None
+      return archtype
+    logging.warning('No results for %s.', query)
+    return None
+
   def PciDevices(self):
     """Get local PCI devices.
 

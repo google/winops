@@ -17,7 +17,7 @@ import distutils
 
 distutils.core.setup(
     name='gwinpy',
-    version='0.3.8',
+    version='0.3.9',
     packages=['gwinpy', 'gwinpy.net', 'gwinpy.registry', 'gwinpy.wmi'],
     license='Apache License',
     url='https://github.com/google/winops/',

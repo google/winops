@@ -263,13 +263,13 @@ class HWInfo(object):
     if results:
       logging.debug(
           'Win32_ComputerSystem/win32-processor: %s',
-          results[0].Architecture.rstrip(),
+          results[0].Architecture,
       )
       try:
-        archtype = architecture_map[int(results[0].Architecture.rstrip())]
+        archtype = architecture_map[results[0].Architecture]
       except KeyError:
         logging.warning(
-            'Unknown architecture %s.', results[0].Architecture.rstrip()
+            'Unknown architecture %d.', results[0].Architecture
         )
         return None
       return archtype

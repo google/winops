@@ -64,6 +64,7 @@ var (
 	procEvtExportLog                = modwevtapi.NewProc("EvtExportLog")
 	procEvtFormatMessage            = modwevtapi.NewProc("EvtFormatMessage")
 	procEvtGetChannelConfigProperty = modwevtapi.NewProc("EvtGetChannelConfigProperty")
+	procEvtGetLogInfo               = modwevtapi.NewProc("EvtGetLogInfo")
 	procEvtNext                     = modwevtapi.NewProc("EvtNext")
 	procEvtNextChannelPath          = modwevtapi.NewProc("EvtNextChannelPath")
 	procEvtNextPublisherId          = modwevtapi.NewProc("EvtNextPublisherId")
@@ -132,6 +133,14 @@ func EvtFormatMessage(pubMetaData windows.Handle, event windows.Handle, messageI
 
 func EvtGetChannelConfigProperty(channelConfig windows.Handle, propertyID EvtChannelConfigPropertyID, flags uint32, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) {
 	r1, _, e1 := syscall.Syscall6(procEvtGetChannelConfigProperty.Addr(), 6, uintptr(channelConfig), uintptr(propertyID), uintptr(flags), uintptr(bufferSize), uintptr(buffer), uintptr(unsafe.Pointer(bufferUsed)))
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func EvtGetLogInfo(log windows.Handle, propertyID EvtLogPropertyID, bufferSize uint32, buffer unsafe.Pointer, bufferUsed *uint32) (err error) {
+	r1, _, e1 := syscall.SyscallN(procEvtGetLogInfo.Addr(), uintptr(log), uintptr(propertyID), uintptr(bufferSize), uintptr(buffer), uintptr(unsafe.Pointer(bufferUsed)))
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}

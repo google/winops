@@ -45,7 +45,7 @@ var _ simple.Event = (*FakeWindowsAPI)(nil)
 func (w *FakeWindowsAPI) Subscribe(bookmark string, query map[string]string) error {
 	w.query = query
 	w.cursors = map[string]int{}
-	for k, _ := range query {
+	for k := range query {
 		if len(w.Events[k]) != 0 {
 			w.eventSignalled = true
 			break

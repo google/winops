@@ -193,7 +193,14 @@ func RenderFragment(fragment windows.Handle, flag uint32) (string, error) {
 		return "", fmt.Errorf("wevtapi.EvtRender failed: %v", err)
 	}
 
-	return syscall.UTF16ToString(buf), nil
+  // syscall.UTF16ToString handles invalid UTF-16 containing isolated surrogates
+  // by emitting invalid UTF-8, in the form of a WTF-8 encoded string (see
+  // https://github.com/golang/go/issues/59971). This allows round-tripping back
+  // to invalid UTF-16, but means that the emitted XML cannot be parsed by
+  // anything that expects valid UTF-8. This includes Go's encoding/xml parser.
+	// Use utf16ToString instead, which substitutes isolated surrogate code points
+	// with the unicode replacement character, U+FFFD.
+	return utf16ToString(buf, len(buf)), nil
 }
 
 // This is like `syscall.UTF16ToString`, but it supports strings that contain null characters.

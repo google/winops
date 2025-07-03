@@ -345,7 +345,6 @@ func (part *Partition) Mount(base string) error {
 		return nil
 	}
 	// Skip partitions that cannot be mounted.
-	// TODO(b/130833261) Revisit not throwing an error here during OSS.
 	if part.fileSystem == UnknownFS {
 		return nil
 	}

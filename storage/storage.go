@@ -113,8 +113,6 @@ type Device struct {
 	model     string
 
 	// Partitioning Information
-	// TODO (b/151981913) This remains a string for now to retain compatibility
-	// with main. It will eventually be moved to type 'partition'.
 	partStyle  glstor.PartitionStyle
 	partitions []Partition
 }

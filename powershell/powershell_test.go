@@ -114,3 +114,25 @@ func TestFile(t *testing.T) {
 		}
 	}
 }
+
+func TestNewSession(t *testing.T) {
+	ps, err := NewSession()
+	if err != nil {
+		t.Fatalf("NewSession() failed: %v", err)
+	}
+	if err := ps.Close(); err != nil {
+		t.Fatalf("Close() failed: %v", err)
+	}
+}
+
+func TestExecute(t *testing.T) {
+	ps, err := NewSession()
+	if err != nil {
+		t.Fatalf("NewSession() failed: %v", err)
+	}
+	defer ps.Close()
+	_, err = ps.Execute("ipconfig")
+	if err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+}

@@ -41,7 +41,7 @@ func TestRenderedEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	if diff != "" {
-		t.Errorf(diff)
+		t.Errorf("%s", diff)
 	}
 	diff, err = diffRenderedEvents(subscriber, 1, []string{"foo3"})
 	if err != nil {

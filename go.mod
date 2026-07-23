@@ -3,12 +3,12 @@ module github.com/google/winops
 go 1.25.3
 
 require (
-	bitbucket.org/creachadair/stringset v0.0.9
+	bitbucket.org/creachadair/stringset v0.0.14
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/golang/glog v1.2.5
 	github.com/google/deck v1.1.0
-	github.com/google/glazier v0.0.0-20260708194511-ab577007a521
-	github.com/google/go-cmp v0.6.0
+	github.com/google/glazier v0.0.0-20260722191826-dfc35fb46599
+	github.com/google/go-cmp v0.7.0
 	github.com/groob/plist v0.1.1
 	github.com/otiai10/copy v1.14.1
 	github.com/pkg/errors v0.9.1

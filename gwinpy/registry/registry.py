@@ -88,8 +88,10 @@ class Registry(object):
       RegistryError: failure opening a handle to the requested key_path
     """
     results = []
+    # Open outside the try block so a failed open propagates its RegistryError
+    # instead of reaching handle.Close() in the finally clause.
+    handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
     try:
-      handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
       # https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-element-size-limits
       for subkeys in range(512):
         result = self._winreg.EnumKey(handle, subkeys)
@@ -123,8 +125,8 @@ class Registry(object):
       RegistryError: failure opening a handle to the requested key_path
     """
     results = []
+    handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
     try:
-      handle = self._OpenSubKey(key_path, create=False, use_64bit=use_64bit)
       key = self._winreg.OpenKey(self._root_key_value, key_path, 0,
                                  self._winreg.KEY_READ)
       # https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-element-size-limits
@@ -204,9 +206,9 @@ class Registry(object):
       raise RegistryError('Attempt to create key of invalid type. [%s]' %
                           key_type)
 
+    handle = self._OpenSubKey(
+        key_path, create=True, write=True, use_64bit=use_64bit)
     try:
-      handle = self._OpenSubKey(
-          key_path, create=True, write=True, use_64bit=use_64bit)
       self._winreg.SetValueEx(handle, key_name, 0, self._type_map[key_type],
                               key_value)
     except WindowsError as e:
@@ -239,9 +241,11 @@ class Registry(object):
       RegistryError: failure opening a handle to the requested key_path
     """
 
+    # Open outside the try block so a missing key propagates its RegistryError
+    # (errno 2) instead of reaching handle.Close() in the finally clause.
+    handle = self._OpenSubKey(
+        key_path, create=False, write=True, use_64bit=use_64bit)
     try:
-      handle = self._OpenSubKey(
-          key_path, create=False, write=True, use_64bit=use_64bit)
       self._winreg.DeleteValue(handle, key_name)
     except WindowsError as e:
       raise RegistryError(

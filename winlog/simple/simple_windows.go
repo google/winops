@@ -123,9 +123,10 @@ func fixEscapeCodes(xmlStr string) string {
 // or with nil on error or if the input was empty.
 func makeBookmark(bookmark string) (windows.Handle, error) {
 	if bookmark != "" {
-		h, err := wevtapi.EvtCreateBookmark(syscall.StringToUTF16Ptr(bookmark))
-		if err == nil { // success! (otherwise, fallback to empty bookmark)
-			return h, err
+		if p, err := syscall.UTF16PtrFromString(bookmark); err == nil {
+			if h, err := wevtapi.EvtCreateBookmark(p); err == nil { // success! (otherwise, fallback to empty bookmark)
+				return h, nil
+			}
 		}
 	}
 	return wevtapi.EvtCreateBookmark(nil)

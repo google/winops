@@ -47,7 +47,16 @@ func NewWindowsEvent() Event {
 
 // Subscribe creates the bookmark from XML formatted string and initializes a subscription for
 // Windows Event Log.
-func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subErr error) {
+func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) error {
+	return e.SubscribeWithOptions(SubscribeOptions{
+		Bookmark: bookmark,
+		Query:    query,
+	})
+}
+
+// SubscribeWithOptions creates the bookmark from XML formatted string and initializes a
+// subscription for Windows Event Log with the given options.
+func (e *WindowsEvent) SubscribeWithOptions(opts SubscribeOptions) (subErr error) {
 	if e.config != nil || e.subscription != 0 {
 		return fmt.Errorf("double subscribed Windows Event for: %+v", e)
 	}
@@ -65,13 +74,13 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subE
 		}
 	}()
 
-	bmh, err := makeBookmark(bookmark)
+	bmh, err := makeBookmark(opts.Bookmark)
 	if err != nil {
 		return fmt.Errorf("wevtapi.EvtCreateBookmark failed: %w", err)
 	}
 	cfg.Bookmark = bmh
 
-	if len(query) != 0 {
+	if len(opts.Query) != 0 {
 		channels, err := winlog.AvailableChannels()
 		if err != nil {
 			return fmt.Errorf("finding available channels: %w", err)
@@ -82,7 +91,7 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subE
 		}
 		// Filter out channels that are not available
 		q := make(map[string]string)
-		for k, v := range query {
+		for k, v := range opts.Query {
 			if channelSet[strings.ToLower(k)] {
 				q[k] = v
 			} else {
@@ -101,7 +110,7 @@ func (e *WindowsEvent) Subscribe(bookmark string, query map[string]string) (subE
 		}
 	}
 
-	cfg.Flags = wevtapi.EvtSubscribeStartAfterBookmark
+	cfg.Flags = wevtapi.EvtSubscribeStartAfterBookmark | opts.Flags
 	e.config = cfg
 	e.subscription, err = winlog.Subscribe(e.config)
 	e.publisherCache = make(map[string]windows.Handle)

@@ -43,16 +43,25 @@ var _ simple.Event = (*FakeWindowsAPI)(nil)
 // Subscribe initializes a subscription for Windows Event Log. Close must be called when
 // finished.
 func (w *FakeWindowsAPI) Subscribe(bookmark string, query map[string]string) error {
-	w.query = query
+	return w.SubscribeWithOptions(simple.SubscribeOptions{
+		Bookmark: bookmark,
+		Query:    query,
+	})
+}
+
+// SubscribeWithOptions initializes a subscription for Windows Event Log with the given
+// options. Close must be called when finished.
+func (w *FakeWindowsAPI) SubscribeWithOptions(opts simple.SubscribeOptions) error {
+	w.query = opts.Query
 	w.cursors = map[string]int{}
-	for k, _ := range query {
+	for k := range opts.Query {
 		if len(w.Events[k]) != 0 {
 			w.eventSignalled = true
 			break
 		}
 	}
-	if bookmark != "" {
-		d := gob.NewDecoder(strings.NewReader(bookmark))
+	if opts.Bookmark != "" {
+		d := gob.NewDecoder(strings.NewReader(opts.Bookmark))
 		return d.Decode(&w.cursors)
 	}
 	return nil

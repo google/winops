@@ -19,11 +19,37 @@ package simple
 
 import "time"
 
+// Additional subscription flags for [SubscribeOptions.Flags], matching
+// EVT_SUBSCRIBE_FLAGS in the Windows Event Log API.
+const (
+	EvtSubscribeTolerateQueryErrors = 0x1000
+	EvtSubscribeStrict              = 0x10000
+)
+
+// SubscribeOptions configures a Windows Event Log subscription.
+type SubscribeOptions struct {
+	// Bookmark is an XML-formatted bookmark string to resume the subscription
+	// from. If empty or invalid, a new empty bookmark is created and the
+	// subscription starts from the oldest record.
+	Bookmark string
+	// Query maps Windows Event Log channel names to XPath queries. If empty,
+	// the default query from winlog.DefaultSubscribeConfig (all events from
+	// Application, Security, and System) is used.
+	Query map[string]string
+	// Flags are additional EVT_SUBSCRIBE_FLAGS (such as
+	// EvtSubscribeTolerateQueryErrors) ORed with
+	// EvtSubscribeStartAfterBookmark when calling EvtSubscribe.
+	Flags uint32
+}
+
 // Event defines a set of APIs to get events from Windows Event Log.
 type Event interface {
 	// Subscribe initializes a subscription for Windows Event Log. Close must be called when
 	// finished.
 	Subscribe(bookmark string, query map[string]string) error
+	// SubscribeWithOptions initializes a subscription for Windows Event Log with the given
+	// options. Close must be called when finished.
+	SubscribeWithOptions(opts SubscribeOptions) error
 	// WaitForSingleObject waits for new events to arrive. Returns true if the event
 	// was signalled before the timeout expired. Timeout must be between 0 and 2^32us.
 	WaitForSingleObject(timeout time.Duration) (bool, error)

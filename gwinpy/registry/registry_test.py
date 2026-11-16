@@ -14,7 +14,8 @@
 """Tests for gwinpy.registry."""
 
 import unittest
-import mock
+from unittest import mock
+
 import six
 from gwinpy.registry import registry
 

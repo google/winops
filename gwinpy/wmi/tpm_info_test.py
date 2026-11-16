@@ -14,7 +14,8 @@
 """Tests for gwinpy.wmi.tpm_info."""
 
 import unittest
-import mock
+from unittest import mock
+
 from gwinpy.wmi import tpm_info
 
 

@@ -15,7 +15,8 @@
 
 import sys
 import unittest
-import mock
+from unittest import mock
+
 from gwinpy.wmi import wmi_query
 
 
